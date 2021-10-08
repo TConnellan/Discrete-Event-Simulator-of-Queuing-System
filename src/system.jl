@@ -1,3 +1,191 @@
+#Here are parameters for scenarios 1, 2, 3, 4, 5 for Project 2
+#For convenience they are stored in a struct, NetworkParameters
+
+using Parameters #You need to install the Parameters.jl package: https://github.com/mauro3/Parameters.jl 
+using LinearAlgebra 
+using DataStructures
+
+#The @with_kw macro comes from the Parameters package
+@with_kw struct NetworkParameters
+    L::Int
+    gamma_shape::Float64 #This is constant for all scenarios at 3.0
+    λ::Float64 #This is undefined for the scenarios since it is varied
+    η::Float64 #This is assumed constant for all scenarios at 4.0
+    μ_vector::Vector{Float64} #service rates
+    P::Matrix{Float64} #routing matrix
+    Q::Matrix{Float64} #overflow matrix
+    p_e::Vector{Float64} #external arrival distribution
+    K::Vector{Int} #-1 means infinity 
+end
+
+
+
+"""
+The main simulation function gets an initial state and an initial event
+that gets things going. Optional arguments are the maximal time for the
+simulation, times for logging events, and a call-back function.
+"""
+function simulate(params::Networkparameters, init_state::State, init_timed_event::TimedEvent
+                    ; 
+                    max_time::Float64 = 10.0, 
+                    log_times::Vector{Float64} = Float64[],
+                    callback = (time, state) -> nothing)
+
+    # The event queue
+    priority_queue = BinaryMinHeap{TimedEvent}()
+
+
+    # queues for each node
+    buffers = Vector{Queue{Uint64}}(undef, params.L)
+
+
+
+    # Put the standard events in the queue
+    push!(priority_queue, init_timed_event)
+    push!(priority_queue, TimedEvent(EndSimEvent(), max_time))
+
+    #= our tracking will be more robust than just printing
+    for log_time in log_times
+        push!(priority_queue, TimedEvent(LogStateEvent(), log_time))
+    end
+    =#
+
+
+    # initilize the state
+    state = deepcopy(init_state)
+    time = 0.0
+
+    # Callback at simulation start
+    callback(time, state)
+
+    # The main discrete event simulation loop - SIMPLE!
+    while true
+        # Get the next event
+        timed_event = pop!(priority_queue)
+
+        # Advance the time
+        time = timed_event.time
+
+        # Act on the event
+        new_timed_events = process_event(time, timed_event.job, timed_event.node, state, timed_event.event) 
+
+        # If the event was an end of simulation then stop
+        if timed_event.event isa EndSimEvent
+            break 
+        end
+
+        # The event may spawn 0 or more events which we put in the priority queue 
+        for nte in new_timed_events
+            push!(priority_queue,nte)
+        end
+
+        # Callback for each simulation event
+        callback(time, state)
+    end
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#= Toms original code
+
 
 using StatsBase
 
@@ -110,3 +298,7 @@ function check_system_inputs(nodes::Vector{Any}, P::Matrix{Float64},
     return true
 end
   
+
+
+
+=#
