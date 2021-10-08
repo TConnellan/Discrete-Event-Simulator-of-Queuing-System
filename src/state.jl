@@ -1,5 +1,5 @@
 
-
+using DataStructures
 
 abstract type State end
 
@@ -11,17 +11,26 @@ mutable struct TrackAllJobs <: State
     # -2 means left system, -1 means in transit
     # maybe when a job leaves we remove it from the dictionary
     currentPosition::Dict{UInt64, Int64}
+
+
+    buffers::Vector{Queue{UInt64}}
+    jobCount::UInt64
 end
 
 #track only total jobs in each location
 mutable struct TrackTotals <: State
-    atNodes::Vector{Uint64}
-    transit::Uint64
+    atNodes::Vector{UInt64}
+    transit::UInt64
+
+
+
+    buffers::Vector{Queue{UInt64}}
+    jobCount::UInt64
 end
 
 #define functions to update each state given a certain event
-
-function update_state end
+# this was hard coded in the appropriate areas
+# function update_state end
 
 
 

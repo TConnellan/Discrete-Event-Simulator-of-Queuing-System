@@ -5,27 +5,12 @@ using Parameters #You need to install the Parameters.jl package: https://github.
 using LinearAlgebra 
 using DataStructures
 
-#The @with_kw macro comes from the Parameters package
-@with_kw struct NetworkParameters
-    L::Int
-    gamma_shape::Float64 #This is constant for all scenarios at 3.0
-    λ::Float64 #This is undefined for the scenarios since it is varied
-    η::Float64 #This is assumed constant for all scenarios at 4.0
-    μ_vector::Vector{Float64} #service rates
-    P::Matrix{Float64} #routing matrix
-    Q::Matrix{Float64} #overflow matrix
-    p_e::Vector{Float64} #external arrival distribution
-    K::Vector{Int} #-1 means infinity 
-end
-
-
-
 """
 The main simulation function gets an initial state and an initial event
 that gets things going. Optional arguments are the maximal time for the
 simulation, times for logging events, and a call-back function.
 """
-function simulate(params::Networkparameters, init_state::State, init_timed_event::TimedEvent
+function simulate(params::NetworkParameters, init_state::State, init_timed_event::TimedEvent
                     ; 
                     max_time::Float64 = 10.0, 
                     log_times::Vector{Float64} = Float64[],
@@ -35,20 +20,10 @@ function simulate(params::Networkparameters, init_state::State, init_timed_event
     priority_queue = BinaryMinHeap{TimedEvent}()
 
 
-    # queues for each node
-    buffers = Vector{Queue{Uint64}}(undef, params.L)
-
-
 
     # Put the standard events in the queue
     push!(priority_queue, init_timed_event)
     push!(priority_queue, TimedEvent(EndSimEvent(), max_time))
-
-    #= our tracking will be more robust than just printing
-    for log_time in log_times
-        push!(priority_queue, TimedEvent(LogStateEvent(), log_time))
-    end
-    =#
 
 
     # initilize the state
@@ -67,7 +42,8 @@ function simulate(params::Networkparameters, init_state::State, init_timed_event
         time = timed_event.time
 
         # Act on the event
-        new_timed_events = process_event(time, timed_event.job, timed_event.node, state, timed_event.event) 
+        new_timed_events = process_event(time, timed_event.job, timed_event.node, 
+                                            state, params, timed_event.event) 
 
         # If the event was an end of simulation then stop
         if timed_event.event isa EndSimEvent
@@ -82,10 +58,17 @@ function simulate(params::Networkparameters, init_state::State, init_timed_event
         # Callback for each simulation event
         callback(time, state)
     end
+    callback(time, state)
 end;
 
 
 
+
+
+function record_data end
+
+
+#function record_data(time::Float64)
 
 
 
