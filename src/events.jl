@@ -83,6 +83,9 @@ struct ServiceCompleteEvent <: Event end
 function process_event(time::Float64, job::UInt64, node::UInt64, 
                         state::State, params::NetworkParameters, 
                         sc_event::ServiceCompleteEvent)
+
+    done_service = dequeue!(state.buffers[node])
+
     out = Vector{TimedEvent}()
     dest = sample([collect(1:params.L) ; -1], Weights([params.P[node] ; 1-sum(params.P[node])]))
     if dest != -1
@@ -95,6 +98,15 @@ function process_event(time::Float64, job::UInt64, node::UInt64,
         state.atNodes[node] -= 1
         state.transit += (dest == -1) ? 0 : -1
     end
+    
+    # if the buffer is not empty start serving a new job
+    if (!isempty(state.buffers[node]))
+        t = time + Gamma(1/3, 3/params.μ_vector[node])
+        push!(out, TimedEvent(ServiceCompleteEvent(), first(state.buffers[node]), node, t))
+        #if we need to distinguish between a job being served and in a buffer then need to update state here
+    end
+
+
 
     return out
 end
@@ -105,7 +117,7 @@ function join_node(time::Float64, job::UInt64, node::UInt64, state::State, param
     out = Vector{TimedEvent}
     # first element in buffer is being served so K + 1
     if (params.K[node] == -1 || length(state.buffers[node]) < params.K[node] + 1)
-        push!(state.buffers[node], job)
+        enqueue!(state.buffers[node], job)
 
         # job is first in buffer and thus being served
         if length(state.buffers[node] == 1)
