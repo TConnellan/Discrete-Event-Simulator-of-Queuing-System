@@ -42,8 +42,7 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
         time = timed_event.time
 
         # Act on the event
-        new_timed_events = process_event(time, timed_event.job, timed_event.node, 
-                                            state, params, timed_event.event) 
+        new_timed_events = process_event(time, state, params, timed_event.event) 
 
         # If the event was an end of simulation then stop
         if timed_event.event isa EndSimEvent
@@ -60,6 +59,7 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
     end
     callback(time, state)
 end;
+
 
 
 

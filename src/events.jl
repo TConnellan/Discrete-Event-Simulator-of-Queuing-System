@@ -7,13 +7,13 @@ abstract type Event end
 # Captures an event and the time it takes place
 struct TimedEvent
     event::Event
-    job::UInt64
-    node::UInt64
     time::Float64
+
+    TimedEvent(event::Event, time::Float64) = new(event, time)
 end
 
-TimedEvent(event::Event, time::Float64) = new(event, nothing, nothing, time)
-TimedEvent(event::Event, job::UInt64, time::Float64) = new(event, job, nothing, time)
+#TimedEvent(event::Event, time::Float64) = TimedEvent(event, 1, 1, time)
+#TimedEvent(event::Event, job::UInt64, time::Float64) = TimedEvent(event, job, 1, time)
 # if we need the constructor for a node but no job then implement it but I don't think we need it
 
 # Comparison of two timed events - this will allow us to use them in a heap/priority-queue
@@ -35,7 +35,7 @@ Return an event that ends the simulation.
 """
 struct EndSimEvent <: Event end
 
-function process_event(time::Float64, job::UInt64, node::UInt64, state::State, es_event::EndSimEvent)
+function process_event(time::Float64, state::State, params::NetworkParameters, es_event::EndSimEvent)
     println("Ending simulation at time $time.")
     return []
 end
@@ -43,70 +43,95 @@ end
 """
 A job with unique number arriving at node at time t
 """
-struct ExternalArrivalEvent <: Event end
+struct ExternalArrivalEvent <: Event 
 
-function process_event(time::Float64, job::UInt64, node::UInt64, state::State, 
+    # the destination of the new arrival
+    node::UInt64
+
+    # the identifier of the new arrival
+    job::UInt64
+end
+
+function process_event(time::Float64, state::State, 
                         params::NetworkParameters, ext_event::ExternalArrivalEvent)
     
     if (state isa TrackTotals)
         # will be removed in join_node, makes implementing join_node easier
         state.transit += 1
     end
-    new_events = Vector{TimedEvent}()
+    #new_events = Vector{TimedEvent}()
 
-    push!(new_events, join_node(time, job, node, state, params))
+    new_events = join_node(time, ext_event.job, ext_event.node, state, params)
+    #for n in ne
+        #push!(new_events, ne)
+    #end
 
+    
+    
+    # cannot call this using test scenarios given in project sheet since λ is NaN
+    t = time + rand(Gamma(1/3, 3/params.λ))
 
-    t = time + Gamma(1/3, 3/params.λ)
+    # this is just for testing
+    #λ = 1
+    #t = time + rand(Gamma(1/3, 3/λ))
+    # ------------------------------- fix the above !!!!!!!!!!!!!!
+
     dest = sample(collect(1:params.L), Weights(params.p_e))
-    # the state.jobCount += 1 changes the state and returns the changed value
-    push!(new_events, TimedEvent(ExternalArrivalEvent(), state.JobCount += 1, dest, t))
+    # the "state.jobCount += 1" changes the state and returns the changed value, all in one line
+    push!(new_events, TimedEvent(ExternalArrivalEvent(dest, state.jobCount += 1), t))
 
     return new_events
 end
 
-struct JoinNodeEvent <: Event end
+struct JoinNodeEvent <: Event 
+    # the destination of the job in transit
+    node::UInt64
 
-function process_event(time::Float64, job::UInt64, node::UInt64, 
-                        state::State, params::NetworkParameters, 
+    # the identifier of the job in transit
+    job::UInt64
+end
+
+function process_event(time::Float64, state::State, params::NetworkParameters, 
                         join_event::JoinNodeEvent)
     
-    new_events = Vector{TimedEvent}()
-    push!(new_events, join_node(time, job, node, state, params))
+    #new_events = Vector{TimedEvent}()
+    #push!(new_events, join_node(time, join_event.job, join_event.node, state, params))
 
-    return new_events
+    return join_node(time, join_event.job, join_event.node, state, params)
 end
 
 
-struct ServiceCompleteEvent <: Event end
+struct ServiceCompleteEvent <: Event
+    # the destination of the new arrival
+    node::UInt64
 
-function process_event(time::Float64, job::UInt64, node::UInt64, 
-                        state::State, params::NetworkParameters, 
-                        sc_event::ServiceCompleteEvent)
+    # the job being completed will always be the job at the front of the queue at the node
+    # this could change if we decide to store the job being served separate from the buffer
+end
 
-    done_service = dequeue!(state.buffers[node])
+function process_event(time::Float64, state::State, params::NetworkParameters, sc_event::ServiceCompleteEvent)
+
+    done_service = dequeue!(state.buffers[sc_event.node])
 
     out = Vector{TimedEvent}()
-    dest = sample([collect(1:params.L) ; -1], Weights([params.P[node] ; 1-sum(params.P[node])]))
+    dest = sample([collect(1:params.L) ; -1], Weights([params.P[sc_event.node] ; 1-sum(params.P[sc_event.node])]))
     if dest != -1
-        t = time + Gamma(1/3, 3/params.η)
-        push!(out, TimedEvent(JoinNodeEvent(), job, dest, t))
+        t = time + rand(Gamma(1/3, 3/params.η))
+        push!(out, TimedEvent(JoinNodeEvent(dest, done_service), t))
     end
     if (state isa TrackAllJobs)
-        state.currentPosition[job] = (dest == -1) ? -2 : -1
+        state.currentPosition[done_service] = (dest == -1) ? -2 : -1
     else
-        state.atNodes[node] -= 1
+        state.atNodes[sc_event.node] -= 1
         state.transit += (dest == -1) ? 0 : -1
     end
     
     # if the buffer is not empty start serving a new job
-    if (!isempty(state.buffers[node]))
-        t = time + Gamma(1/3, 3/params.μ_vector[node])
-        push!(out, TimedEvent(ServiceCompleteEvent(), first(state.buffers[node]), node, t))
+    if (!isempty(state.buffers[sc_event.node]))
+        t = time + rand(Gamma(1/3, 3/params.μ_vector[sc_event.node]))
+        push!(out, TimedEvent(ServiceCompleteEvent(sc_event.node), t))
         #if we need to distinguish between a job being served and in a buffer then need to update state here
     end
-
-
 
     return out
 end
@@ -114,15 +139,16 @@ end
 
 
 function join_node(time::Float64, job::UInt64, node::UInt64, state::State, params::NetworkParameters)
-    out = Vector{TimedEvent}
+    out = Vector{TimedEvent}()
+    #println("$(state.buffers[node])")
     # first element in buffer is being served so K + 1
     if (params.K[node] == -1 || length(state.buffers[node]) < params.K[node] + 1)
         enqueue!(state.buffers[node], job)
 
         # job is first in buffer and thus being served
-        if length(state.buffers[node] == 1)
-            t = time + Gamma(1/3,3/params.μ_vector[node])
-            push!(out, TimedEvent(ServiceCompleteEvent(), job, node, t))
+        if length(state.buffers[node]) == 1
+            t = time + rand(Gamma(1/3,3/params.μ_vector[node]))
+            push!(out, TimedEvent(ServiceCompleteEvent(node), t))
         end
         if (state isa TrackAllJobs)
             state.currentPosition[job] = node
@@ -132,7 +158,7 @@ function join_node(time::Float64, job::UInt64, node::UInt64, state::State, param
         end
     else
         # overflow
-        t = time + Gamma(1/3, 3/params.η)
+        t = time + rand(Gamma(1/3, 3/params.η))
         dest = sample([collect(1:params.L) ; -1], Weights([params.Q[node] ; 1-sum(params.Q[node])]))
         if (dest == -1) 
             # leave system 
@@ -144,7 +170,7 @@ function join_node(time::Float64, job::UInt64, node::UInt64, state::State, param
                 state.transit -= 1
             end
         else
-            push!(out, TimedEvent(JoinNodeEvent(), job, dest, t))
+            push!(out, TimedEvent(JoinNodeEvent(dest, job), t))
             if (state isa TrackAllJobs)
                 state.currentPosition[job] = -1
             else
