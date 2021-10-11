@@ -59,23 +59,11 @@ function process_event(time::Float64, state::State,
         # will be removed in join_node, makes implementing join_node easier
         state.transit += 1
     end
-    #new_events = Vector{TimedEvent}()
 
     new_events = join_node(time, ext_event.job, ext_event.node, state, params)
-    #for n in ne
-        #push!(new_events, ne)
-    #end
-
+ 
     
-    
-    # cannot call this using test scenarios given in project sheet since λ is NaN
     t = time + rand(Gamma(1/3, 3/params.λ))
-
-    # this is just for testing
-    #λ = 1
-    #t = time + rand(Gamma(1/3, 3/λ))
-    # ------------------------------- fix the above !!!!!!!!!!!!!!
-
     dest = sample(collect(1:params.L), Weights(params.p_e))
     # the "state.jobCount += 1" changes the state and returns the changed value, all in one line
     push!(new_events, TimedEvent(ExternalArrivalEvent(dest, state.jobCount += 1), t))
@@ -140,8 +128,8 @@ end
 
 function join_node(time::Float64, job::UInt64, node::UInt64, state::State, params::NetworkParameters)
     out = Vector{TimedEvent}()
-    #println("$(state.buffers[node])")
-    # first element in buffer is being served so K + 1
+
+    # first element in buffer is the one being served hence max elements in buffer is K + 1
     if (params.K[node] == -1 || length(state.buffers[node]) < params.K[node] + 1)
         enqueue!(state.buffers[node], job)
 
