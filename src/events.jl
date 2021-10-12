@@ -13,7 +13,7 @@ struct TimedEvent
 end
 
 #TimedEvent(event::Event, time::Float64) = TimedEvent(event, 1, 1, time)
-#TimedEvent(event::Event, job::UInt64, time::Float64) = TimedEvent(event, job, 1, time)
+#TimedEvent(event::Event, job::64, time::Float64) = TimedEvent(event, job, 1, time)
 # if we need the constructor for a node but no job then implement it but I don't think we need it
 
 # Comparison of two timed events - this will allow us to use them in a heap/priority-queue
@@ -46,10 +46,10 @@ A job with unique number arriving at node at time t
 struct ExternalArrivalEvent <: Event 
 
     # the destination of the new arrival
-    node::UInt64
+    node::Int64
 
     # the identifier of the new arrival
-    job::UInt64
+    job::Int64
 end
 
 function process_event(time::Float64, state::State, 
@@ -73,10 +73,10 @@ end
 
 struct JoinNodeEvent <: Event 
     # the destination of the job in transit
-    node::UInt64
+    node::Int64
 
     # the identifier of the job in transit
-    job::UInt64
+    job::Int64
 end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
@@ -88,10 +88,9 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
     return join_node(time, join_event.job, join_event.node, state, params)
 end
 
-
 struct ServiceCompleteEvent <: Event
     # the destination of the new arrival
-    node::UInt64
+    node::Int64
 
     # the job being completed will always be the job at the front of the queue at the node
     # this could change if we decide to store the job being served separate from the buffer
@@ -108,10 +107,16 @@ function process_event(time::Float64, state::State, params::NetworkParameters, s
         push!(out, TimedEvent(JoinNodeEvent(dest, done_service), t))
     end
     if (state isa TrackAllJobs)
-        state.currentPosition[done_service] = (dest == -1) ? -2 : -1
+        if dest == -1
+            # remove entry from dictionary, saves space compared to setting value to -2
+            delete!(state.currentPosition, done_service)
+        else
+            state.currentPosition[done_service] = -1
+        end
+        #state.currentPosition[done_service] = (dest == -1) ? -2 : -1
     else
         state.atNodes[sc_event.node] -= 1
-        state.transit += (dest == -1) ? 0 : -1
+        state.transit += (dest == -1) ? 0 : 1
     end
     
     # if the buffer is not empty start serving a new job
@@ -124,9 +129,7 @@ function process_event(time::Float64, state::State, params::NetworkParameters, s
     return out
 end
 
-
-
-function join_node(time::Float64, job::UInt64, node::UInt64, state::State, params::NetworkParameters)
+function join_node(time::Float64, job::Int64, node::Int64, state::State, params::NetworkParameters)
     out = Vector{TimedEvent}()
 
     # first element in buffer is the one being served hence max elements in buffer is K + 1
@@ -162,7 +165,9 @@ function join_node(time::Float64, job::UInt64, node::UInt64, state::State, param
             if (state isa TrackAllJobs)
                 state.currentPosition[job] = -1
             else
-                state.transit += 1
+                # don't need to update in this situation, if this is an external arrival then its handled in its process_event() function
+                # if its an internal arrival then it must have already been in transit so we don't need to change state.transit at all
+                #state.transit += 1
             end
         end
     end

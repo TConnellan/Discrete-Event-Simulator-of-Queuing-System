@@ -40,6 +40,9 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
 
         # Advance the time
         time = timed_event.time
+        #println("time is $(time)")
+
+
 
         # Act on the event
         new_timed_events = process_event(time, state, params, timed_event.event) 
@@ -62,13 +65,72 @@ end;
 
 
 
+# setting up and doing simulation ----------------------------
 
 
 
-function record_data end
+function create_scen1(λ::Float64)
+    return NetworkParameters( L=3, 
+    gamma_shape = 3.0, 
+    λ = λ, 
+    η = 4.0, 
+    μ_vector = ones(3),
+    P = [0 1.0 0;
+        0 0 1.0;
+        0 0 0],
+    Q = zeros(3,3),
+    p_e = [1.0, 0, 0],
+    K = fill(5,3))
+end
+
+function create_init_state(s, p::NetworkParameters)
+    if (s isa TrackAllJobs)
+        return TrackAllJobs(Dict{Int64, Int64}, [Queue{Int64}() for _ in 1:(p.L)], 0)
+    else 
+        return TrackTotals(zeros(p.L), 0, [Queue{Int64}() for _ in 1:(p.L)], 0)
+    end
+end    
+
+function create_init_event(p::NetworkParameters, s::State)
+    dest = sample(collect(1:(p.L)), Weights(p.p_e))
+    return TimedEvent(ExternalArrivalEvent(dest, s.jobCount += 1), 0.0 + rand(Gamma(1/3,3/p.η)))
+end
 
 
-#function record_data(time::Float64)
+
+function do_sim(state_type; max_time=10.0)
+
+    λ = 1
+
+    params = create_scen1(λ + 0.0)
+    state = create_init_state(state_type, params)
+    init = create_init_event(params, state)
+
+    if state_type isa TrackAllJobs
+        # setup storage for ouput
+        
+        
+        cb = function record_data(time::Float64, state::TrackAllJobs)
+            # record data functionality
+            return nothing
+        end
+    else
+        # setup storage output
+
+        # each time we record the state of the system we will store time, number of jobs created until this point, number in transit, and number at each node.
+        # there are L nodes so L + 3 entries
+        data = Vector{Any}[]
+
+        
+        record_data = (time::Float64, state::TrackTotals) -> push!(data, [[time, state.jobCount, state.transit] ; state.atNodes])
+        
+    end
+
+    simulate(params, state, init, max_time = max_time, callback=record_data)
+
+    return data
+end
+
 
 
 

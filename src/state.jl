@@ -10,23 +10,39 @@ abstract type State end
 mutable struct TrackAllJobs <: State
     # -2 means left system, -1 means in transit
     # maybe when a job leaves we remove it from the dictionary
-    currentPosition::Dict{UInt64, Int64}
+    currentPosition::Dict{Int64, Int64}
 
 
-    buffers::Vector{Queue{UInt64}}
-    jobCount::UInt64
+    buffers::Vector{Queue{Int64}}
+    jobCount::Int64
 end
 
 #track only total jobs in each location
 mutable struct TrackTotals <: State
-    atNodes::Vector{UInt64}
-    transit::UInt64
+    atNodes::Vector{Int64}
+    transit::Int64
 
 
 
-    buffers::Vector{Queue{UInt64}}
-    jobCount::UInt64
+    buffers::Vector{Queue{Int64}}
+    jobCount::Int64
 end
+
+
+function increment_node(job)
+
+end
+
+
+
+
+
+
+
+
+
+
+
 
 #define functions to update each state given a certain event
 # this was hard coded in the appropriate areas
@@ -34,4 +50,4 @@ end
 
 
 
-#function update_state(job::Uint64, node::Uint64, state::State, event::EndSimEvent) etc
+#function update_state(job::int64, node::int64, state::State, event::EndSimEvent) etc
