@@ -32,22 +32,3 @@ end
 function increment_node(job)
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-#define functions to update each state given a certain event
-# this was hard coded in the appropriate areas
-# function update_state end
-
-
-
-#function update_state(job::int64, node::int64, state::State, event::EndSimEvent) etc

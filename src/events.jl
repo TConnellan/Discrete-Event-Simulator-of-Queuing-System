@@ -53,7 +53,7 @@ struct ExternalArrivalEvent <: Event
 end
 
 function process_event(time::Float64, state::State, 
-                        params::NetworkParameters, ext_event::ExternalArrivalEvent)
+                        params::NetworkParameters, ext_event::ExternalArrivalEvent)::Vector{TimedEvent}
     
     if (state isa TrackTotals)
         # will be removed in join_node, makes implementing join_node easier
@@ -80,7 +80,7 @@ struct JoinNodeEvent <: Event
 end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
-                        join_event::JoinNodeEvent)
+                        join_event::JoinNodeEvent)::Vector{TimedEvent}
     
     #new_events = Vector{TimedEvent}()
     #push!(new_events, join_node(time, join_event.job, join_event.node, state, params))
@@ -96,7 +96,7 @@ struct ServiceCompleteEvent <: Event
     # this could change if we decide to store the job being served separate from the buffer
 end
 
-function process_event(time::Float64, state::State, params::NetworkParameters, sc_event::ServiceCompleteEvent)
+function process_event(time::Float64, state::State, params::NetworkParameters, sc_event::ServiceCompleteEvent)::Vector{TimedEvent}
     
     done_service = dequeue!(state.buffers[sc_event.node])
 
@@ -129,7 +129,7 @@ function process_event(time::Float64, state::State, params::NetworkParameters, s
     return out
 end
 
-function join_node(time::Float64, job::Int64, node::Int64, state::State, params::NetworkParameters)
+function join_node(time::Float64, job::Int64, node::Int64, state::State, params::NetworkParameters)::Vector{TimedEvent}
     out = Vector{TimedEvent}()
 
     # first element in buffer is the one being served hence max elements in buffer is K + 1
@@ -174,30 +174,3 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State, params:
 
     return out
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-#=
-"""
-    LogStateEvent()
-
-Return an event that prints a log of the current simulation state.
-"""
-struct LogStateEvent <: Event end
-
-function process_event(time::Float64, state::State, ls_event::LogStateEvent)
-    println("Logging state at time $time.")
-    println(state)
-    return []
-end
-=#
