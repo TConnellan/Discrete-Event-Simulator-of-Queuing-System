@@ -97,11 +97,11 @@ struct ServiceCompleteEvent <: Event
 end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, sc_event::ServiceCompleteEvent)
-
+    
     done_service = dequeue!(state.buffers[sc_event.node])
 
     out = Vector{TimedEvent}()
-    dest = sample([collect(1:params.L) ; -1], Weights([params.P[sc_event.node] ; 1-sum(params.P[sc_event.node])]))
+    dest = sample([collect(1:params.L) ; -1], Weights([params.P[sc_event.node,:] ; 1-sum(params.P[sc_event.node,:])]))
     if dest != -1
         t = time + rand(Gamma(1/3, 3/params.η))
         push!(out, TimedEvent(JoinNodeEvent(dest, done_service), t))
@@ -150,7 +150,7 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State, params:
     else
         # overflow
         t = time + rand(Gamma(1/3, 3/params.η))
-        dest = sample([collect(1:params.L) ; -1], Weights([params.Q[node] ; 1-sum(params.Q[node])]))
+        dest = sample([collect(1:params.L) ; -1], Weights([params.Q[node,:] ; 1-sum(params.Q[node,:])]))
         if (dest == -1) 
             # leave system 
 

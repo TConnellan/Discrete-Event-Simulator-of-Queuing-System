@@ -40,7 +40,6 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
 
         # Advance the time
         time = timed_event.time
-        #println("time is $(time)")
 
 
 
