@@ -87,7 +87,7 @@ function create_init_state(s, p::NetworkParameters)
     if (s <: TrackAllJobs)
         return TrackAllJobs(Dict{Int64, Tuple{Float64, Int64}}(), Float64[], [Queue{Int64}() for _ in 1:(p.L)], 0)
     else 
-        return TrackTotals(zeros(p.L), 0, [Queue{Int64}() for _ in 1:(p.L)], 0)
+        return TrackTotals(zeros(p.L), 0)
     end
 end    
 
@@ -119,8 +119,11 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
         # first entry is running stat of average number of items in system
         # second entry is running stat of proportion of total jobs in transit
         data = zeros(2)
+        #data2 = Vector{Vector{Float64}}()
 
         record_data = function (time::Float64, state::TrackTotals)
+            #push!(data2, [[time, state.transit] ; state.atNodes])
+            #return
             node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
             if time != 0
                 
@@ -160,6 +163,7 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
 
     simulate(params, state, init, max_time = max_time, callback=record_data)
 
+    #return data2
     return data
 end
 

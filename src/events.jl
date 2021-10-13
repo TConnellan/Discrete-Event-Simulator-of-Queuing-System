@@ -60,7 +60,7 @@ function process_event(time::Float64, state::State,
     job_join_sys(ext_event.job, ext_event.node, time, state) #effectively join_transit but deals with storing initial time
 
     new_events = join_node(time, ext_event.job, ext_event.node, state, params)
-    
+
     t = time + ext_arr_time(params)
     dest = route_ext_arr(collect(1:params.L), params.p_e)
     push!(new_events, TimedEvent(ExternalArrivalEvent(dest, new_job(state)), t))
@@ -92,51 +92,46 @@ end
 function process_event(time::Float64, state::State, params::NetworkParameters, 
                             sc_event::ServiceCompleteEvent)::Vector{TimedEvent}
     
-    done_service = dequeue!(state.buffers[sc_event.node])
-
     out = Vector{TimedEvent}()
+    done_service = get_served(sc_event.node, state)
+    job_leave_node(done_service, sc_event.node, state)
+
     dest = route_int_trav(sc_event.node, params.P)
     if dest != -1
         t = time + transit_time(params)
         push!(out, TimedEvent(JoinNodeEvent(dest, done_service), t))
-    end
-
-    job_leave_node(done_service, sc_event.node, state)
-
-    
-    if dest == -1
-        job_leave_sys(done_service, sc_event.node, time, state)
-    else
         job_join_transit(done_service, sc_event.node, state)
+    else
+        job_leave_sys(done_service, sc_event.node, time, state)
     end
-    
+
     # if the buffer is not empty start serving a new job
-    if (!isempty(state.buffers[sc_event.node]))
+    if jobs_at_node(sc_event.node, state) > 0
         t = time + service_time(params, sc_event.node)
         push!(out, TimedEvent(ServiceCompleteEvent(sc_event.node), t))
-        #if we need to distinguish between a job being served and in a buffer then need to update state here
     end
 
     return out
 end
 
+
 function join_node(time::Float64, job::Int64, node::Int64, state::State, 
-                            params::NetworkParameters)::Vector{TimedEvent}
-    
+                                params::NetworkParameters)::Vector{TimedEvent}
+
     new_ev = Vector{TimedEvent}()
 
     # first element in buffer is the one being served hence max elements in buffer is K + 1
-    if (params.K[node] == -1 || length(state.buffers[node]) < params.K[node] + 1)
-        enqueue!(state.buffers[node], job)
+    if (check_capacity(node, params, state))
+        job_leave_transit(job, state)
+        job_join_node(job, node, state)
 
         # job is first in buffer and thus being served
-        if length(state.buffers[node]) == 1
+        if jobs_at_node(node, state) == 1
             t= time + service_time(params, node)
             push!(new_ev, TimedEvent(ServiceCompleteEvent(node), t))
         end
 
-        job_leave_transit(job, state)
-        job_join_node(job, node, state)
+        
     else
         # overflow
         t = time + transit_time(params)
@@ -153,11 +148,3 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
 
     return new_ev
 end
-
-
-
-
-
-
-
-
