@@ -9,7 +9,7 @@ include("./src/system.jl")
 
 ############################
 scenario1 = NetworkParameters(  L=3, 
-                                gamma_shape = 3.0, 
+                                scv = 3.0, 
                                 λ = NaN, 
                                 η = 4.0, 
                                 μ_vector = ones(3),
@@ -23,7 +23,7 @@ scenario1 = NetworkParameters(  L=3,
 
 ############################
 scenario2 = NetworkParameters(  L=3, 
-                                gamma_shape = 3.0, 
+                                scv = 3.0, 
                                 λ = NaN, 
                                 η = 4.0, 
                                 μ_vector = ones(3),
@@ -37,7 +37,7 @@ scenario2 = NetworkParameters(  L=3,
 
 ############################
 scenario3 = NetworkParameters(  L=3, 
-                                gamma_shape = 3.0, 
+                                scv = 3.0, 
                                 λ = NaN, 
                                 η = 4.0, 
                                 μ_vector = ones(3),
@@ -53,7 +53,7 @@ scenario3 = NetworkParameters(  L=3,
 
 ############################
 scenario4 = NetworkParameters(  L=5, 
-                                gamma_shape = 3.0, 
+                                scv = 3.0, 
                                 λ = NaN, 
                                 η = 4.0, 
                                 μ_vector = collect(5:-1:1),
@@ -73,7 +73,7 @@ scenario4 = NetworkParameters(  L=5,
 
 ############################
 scenario5 = NetworkParameters(  L=20, 
-                                gamma_shape = 3.0, 
+                                scv = 3.0, 
                                 λ = NaN, 
                                 η = 4.0, 
                                 μ_vector = ones(20),

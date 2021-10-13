@@ -54,21 +54,17 @@ end
 
 function process_event(time::Float64, state::State, 
                         params::NetworkParameters, ext_event::ExternalArrivalEvent)::Vector{TimedEvent}
-    
-    if (typeof(state) <: TrackTotals)
-        # will be removed in join_node, makes implementing join_node easier
-        state.transit += 1
-    else
-        state.currentPosition[ext_event.job] = (time, -1)
-    end
+
+    # Since the first arrival is instantaneous the state will be immediately altered in join_node
+    # before any callback function is called
+    job_join_sys(ext_event.job, ext_event.node, time, state) #effectively join_transit but deals with storing initial time
 
     new_events = join_node(time, ext_event.job, ext_event.node, state, params)
  
-    
-    t = time + rand(Gamma(1/3, 3/params.λ))
-    dest = sample(collect(1:params.L), Weights(params.p_e))
-    # the "state.jobCount += 1" changes the state and returns the changed value, all in one line
-    push!(new_events, TimedEvent(ExternalArrivalEvent(dest, state.jobCount += 1), t))
+    #t = time + rand(Gamma(1/3, 3/params.λ))
+    t = time + ext_arr_time(params)
+    dest = route_ext_arr(collect(1:params.L), params.p_e)
+    push!(new_events, TimedEvent(ExternalArrivalEvent(dest, new_job(state)), t))
 
     return new_events
 end
@@ -76,16 +72,12 @@ end
 struct JoinNodeEvent <: Event 
     # the destination of the job in transit
     node::Int64
-
     # the identifier of the job in transit
     job::Int64
 end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
                         join_event::JoinNodeEvent)::Vector{TimedEvent}
-    
-    #new_events = Vector{TimedEvent}()
-    #push!(new_events, join_node(time, join_event.job, join_event.node, state, params))
 
     return join_node(time, join_event.job, join_event.node, state, params)
 end
@@ -98,34 +90,32 @@ struct ServiceCompleteEvent <: Event
     # this could change if we decide to store the job being served separate from the buffer
 end
 
-function process_event(time::Float64, state::State, params::NetworkParameters, sc_event::ServiceCompleteEvent)::Vector{TimedEvent}
+function process_event(time::Float64, state::State, params::NetworkParameters, 
+                            sc_event::ServiceCompleteEvent)::Vector{TimedEvent}
     
     done_service = dequeue!(state.buffers[sc_event.node])
 
     out = Vector{TimedEvent}()
-    dest = sample([collect(1:params.L) ; -1], Weights([params.P[sc_event.node,:] ; 1-sum(params.P[sc_event.node,:])]))
+    dest = route_int_trav(sc_event.node, params.P)
     if dest != -1
-        t = time + rand(Gamma(1/3, 3/params.η))
+        #t = time + rand(Gamma(1/3, 3/params.η))
+        t = time + transit_time(params)
         push!(out, TimedEvent(JoinNodeEvent(dest, done_service), t))
     end
-    if (typeof(state) <: TrackAllJobs)
-        if dest == -1
-            # remove entry from dictionary, saves space compared to setting value to -2
-            push!(state.sojournPush, time - state.currentPosition[done_service][1])
-            delete!(state.currentPosition, done_service)
 
-        else
-            state.currentPosition[done_service] = (state.currentPosition[done_service][1], -1)
-        end
-        #state.currentPosition[done_service] = (dest == -1) ? -2 : -1
+    job_leave_node(done_service, sc_event.node, state)
+
+    
+    if dest == -1
+        job_leave_sys(done_service, sc_event.node, time, state)
     else
-        state.atNodes[sc_event.node] -= 1
-        state.transit += (dest == -1) ? 0 : 1
+        job_join_transit(done_service, sc_event.node, state)
     end
     
     # if the buffer is not empty start serving a new job
     if (!isempty(state.buffers[sc_event.node]))
-        t = time + rand(Gamma(1/3, 3/params.μ_vector[sc_event.node]))
+        #t = time + rand(Gamma(1/3, 3/params.μ_vector[sc_event.node]))
+        t = time + service_time(params, sc_event.node)
         push!(out, TimedEvent(ServiceCompleteEvent(sc_event.node), t))
         #if we need to distinguish between a job being served and in a buffer then need to update state here
     end
@@ -133,8 +123,10 @@ function process_event(time::Float64, state::State, params::NetworkParameters, s
     return out
 end
 
-function join_node(time::Float64, job::Int64, node::Int64, state::State, params::NetworkParameters)::Vector{TimedEvent}
-    out = Vector{TimedEvent}()
+function join_node(time::Float64, job::Int64, node::Int64, state::State, 
+                            params::NetworkParameters)::Vector{TimedEvent}
+    
+    new_ev = Vector{TimedEvent}()
 
     # first element in buffer is the one being served hence max elements in buffer is K + 1
     if (params.K[node] == -1 || length(state.buffers[node]) < params.K[node] + 1)
@@ -142,41 +134,35 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State, params:
 
         # job is first in buffer and thus being served
         if length(state.buffers[node]) == 1
-            t = time + rand(Gamma(1/3,3/params.μ_vector[node]))
-            push!(out, TimedEvent(ServiceCompleteEvent(node), t))
+            #t = time + rand(Gamma(1/3,3/params.μ_vector[node]))
+            t= time + service_time(params, node)
+            push!(new_ev, TimedEvent(ServiceCompleteEvent(node), t))
         end
-        if (typeof(state) <: TrackAllJobs)
-            state.currentPosition[job] = (state.currentPosition[job][1], node)
-        else
-            state.atNodes[node] +=1
-            state.transit -= 1
-        end
+
+        job_leave_transit(job, state)
+        job_join_node(job, node, state)
     else
         # overflow
-        t = time + rand(Gamma(1/3, 3/params.η))
-        dest = sample([collect(1:params.L) ; -1], Weights([params.Q[node,:] ; 1-sum(params.Q[node,:])]))
+        #t = time + rand(Gamma(1/3, 3/params.η))
+        t = time + transit_time(params)
+        dest = route_int_trav(node, params.Q)
         if (dest == -1) 
-            # leave system 
-
-            # need to deal with tracking
-            if (typeof(state) <: TrackAllJobs)
-                push!(state.sojournPush, time - state.currentPosition[job][1])
-                delete!(state.currentPosition, job)
-                #state.currentPosition[job] = -2
-            else
-                state.transit -= 1
-            end
+            # leave system, no new event, just need to deal with tracking
+            job_leave_transit(job, state)
+            job_leave_sys(job, node, time, state)
         else
-            push!(out, TimedEvent(JoinNodeEvent(dest, job), t))
-            if (typeof(state) <: TrackAllJobs)
-                state.currentPosition[job] = (state.currentPosition[1], -1)
-            else
-                # don't need to update in this situation, if this is an external arrival then its handled in its process_event() function
-                # if its an internal arrival then it must have already been in transit so we don't need to change state.transit at all
-                #state.transit += 1
-            end
+            push!(new_ev, TimedEvent(JoinNodeEvent(dest, job), t))
+            # don't need any update
         end
     end
 
-    return out
+    return new_ev
 end
+
+
+
+
+
+
+
+

@@ -1,6 +1,6 @@
 
 scenario1 = NetworkParameters( L=3, 
-gamma_shape = 3.0, 
+scv = 3.0, 
 λ = NaN, 
 η = 4.0, 
 μ_vector = ones(3),
@@ -21,11 +21,11 @@ function test_one(N::Int=50, max_time::Float64=10.0)
             params = create_scen1(λ + 0.0)
             state = create_init_state(s, params)
             init = create_init_event(params, state)
-            try 
+            #try 
                 @time simulate(params, state, init,max_time=max_time)
-            catch
-                println("failed")
-            end
+            #catch
+            #    println("failed")
+            #end
         end
     end
     println("passed test 1")

@@ -4,7 +4,8 @@ using StatsBase
 #using multiple dispatch
 
 #route external arrivals
-function route(nodes::Vector{Int}, p_e::Vector{Float64})
+function route_ext_arr(nodes::Vector{Int}, p_e::Vector{Float64})
+    @assert length(nodes) == length(p_e)
     w = Weights(p_e)
     node = sample(nodes, w)
     return node
@@ -15,14 +16,24 @@ nodes = collect(1:10)
 p_e = [.1, 0, 0, 0, .2, 0, 0, 0, 0, .7]
 
 for i=1:10
-     println(route(nodes, p_e))
+     println(route_ext_arr(nodes, p_e))
 end
 
 
 #function for project
-function route(P::Array{Float64, 2}, from_node::Int)
-    prob_from_node = Weights(P[from_node,:])
-    nodes = collect(1:size(P)[2])
+function route_int_trav(from_node::Int, P::Array{Float64, 2})
+    n, m = size(P)
+    @assert n == m
+    @assert 1 <= from_node <= n
+
+    # need to account for possibility that the job will leave system
+    probs = P[from_node,:]
+    prob_leave = 1 - sum(probs)
+    prob_from_node = Weights([probs ; prob_leave])
+
+
+    # let -1 denote leaving the system
+    nodes = [collect(1:n) ; -1]
     return sample(nodes, prob_from_node)
 end
 
@@ -32,7 +43,7 @@ P = [0 1.0 0;
     0.5 0 0]
 
 for i=1:3
-    println("going from node $i to node ", route(P,i) )
+    println("going from node $i to node ", route_int_trav(i,P) )
 end
 
 #"""
