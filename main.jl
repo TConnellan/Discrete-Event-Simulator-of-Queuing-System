@@ -83,3 +83,4 @@ scenario5 = NetworkParameters(  L=20,
                                 K = fill(5,20))
 #@show scenario5
 ; 
+

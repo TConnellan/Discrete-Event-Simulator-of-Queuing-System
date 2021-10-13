@@ -10,8 +10,8 @@ abstract type State end
 mutable struct TrackAllJobs <: State
     # -2 means left system, -1 means in transit
     # maybe when a job leaves we remove it from the dictionary
-    currentPosition::Dict{Int64, Int64}
-
+    currentPosition::Dict{Int64, Tuple{Float64, Int64}}
+    sojournPush::Vector{Float64}
 
     buffers::Vector{Queue{Int64}}
     jobCount::Int64

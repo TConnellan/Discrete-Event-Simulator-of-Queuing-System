@@ -83,8 +83,8 @@ function create_scen1(λ::Float64)
 end
 
 function create_init_state(s, p::NetworkParameters)
-    if (s isa TrackAllJobs)
-        return TrackAllJobs(Dict{Int64, Int64}, [Queue{Int64}() for _ in 1:(p.L)], 0)
+    if (s <: TrackAllJobs)
+        return TrackAllJobs(Dict{Int64, Tuple{Float64, Int64}}(), Float64[], [Queue{Int64}() for _ in 1:(p.L)], 0)
     else 
         return TrackTotals(zeros(p.L), 0, [Queue{Int64}() for _ in 1:(p.L)], 0)
     end
@@ -97,32 +97,41 @@ end
 
 
 
-function do_sim(state_type; max_time=10.0)
-
-    λ = 1
+function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
 
     params = create_scen1(λ + 0.0)
     state = create_init_state(state_type, params)
     init = create_init_event(params, state)
-
-    if state_type isa TrackAllJobs
+    if state_type <: TrackAllJobs
         # setup storage for ouput
+        data = Vector{Float64}()
         
-        
-        cb = function record_data(time::Float64, state::TrackAllJobs)
-            # record data functionality
-            return nothing
+        record_data = function (time::Float64, state::TrackAllJobs)
+            while !isempty(state.sojournPush)
+                push!(data, pop!(state.sojournPush))
+            end
         end
     else
-        # setup storage output
-
-        # each time we record the state of the system we will store time, number of jobs created until this point, number in transit, and number at each node.
-        # there are L nodes so L + 3 entries
-        data = Vector{Any}[]
-
         
-        record_data = (time::Float64, state::TrackTotals) -> push!(data, [[time, state.jobCount, state.transit] ; state.atNodes])
-        
+        prev_time = [0.0]
+        # first entry is running stat of average number of items in system
+        # second entry is running stat of proportion of total jobs in transit
+        data = zeros(2)
+
+        record_data = function (time::Float64, state::TrackTotals)
+            if time != 0 
+                node_sum = sum(state.atNodes)
+                data[1] = (data[1]*prev_time[1] + (state.transit + node_sum)*(time - prev_time[1])) / time
+
+                if (node_sum + state.transit != 0)
+                    data[2] = (data[2]*prev_time[1] + (state.transit / (node_sum + state.transit))*(time-prev_time[1]) ) / time
+                else
+                    # in this situation both node_sum and state.transit are 0. i.e the number of items in the system is zero. here the
+                    # proportion is not defined so I think it should not be updated
+                end
+            end
+            prev_time[1] = time
+        end
     end
 
     simulate(params, state, init, max_time = max_time, callback=record_data)

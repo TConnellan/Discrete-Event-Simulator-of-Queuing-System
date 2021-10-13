@@ -55,9 +55,11 @@ end
 function process_event(time::Float64, state::State, 
                         params::NetworkParameters, ext_event::ExternalArrivalEvent)::Vector{TimedEvent}
     
-    if (state isa TrackTotals)
+    if (typeof(state) <: TrackTotals)
         # will be removed in join_node, makes implementing join_node easier
         state.transit += 1
+    else
+        state.currentPosition[ext_event.job] = (time, -1)
     end
 
     new_events = join_node(time, ext_event.job, ext_event.node, state, params)
@@ -106,12 +108,14 @@ function process_event(time::Float64, state::State, params::NetworkParameters, s
         t = time + rand(Gamma(1/3, 3/params.η))
         push!(out, TimedEvent(JoinNodeEvent(dest, done_service), t))
     end
-    if (state isa TrackAllJobs)
+    if (typeof(state) <: TrackAllJobs)
         if dest == -1
             # remove entry from dictionary, saves space compared to setting value to -2
+            push!(state.sojournPush, time - state.currentPosition[done_service][1])
             delete!(state.currentPosition, done_service)
+
         else
-            state.currentPosition[done_service] = -1
+            state.currentPosition[done_service] = (state.currentPosition[done_service][1], -1)
         end
         #state.currentPosition[done_service] = (dest == -1) ? -2 : -1
     else
@@ -141,8 +145,8 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State, params:
             t = time + rand(Gamma(1/3,3/params.μ_vector[node]))
             push!(out, TimedEvent(ServiceCompleteEvent(node), t))
         end
-        if (state isa TrackAllJobs)
-            state.currentPosition[job] = node
+        if (typeof(state) <: TrackAllJobs)
+            state.currentPosition[job] = (state.currentPosition[job][1], node)
         else
             state.atNodes[node] +=1
             state.transit -= 1
@@ -155,15 +159,17 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State, params:
             # leave system 
 
             # need to deal with tracking
-            if (state isa TrackAllJobs)
-                state.currentPosition[job] = -2
+            if (typeof(state) <: TrackAllJobs)
+                push!(state.sojournPush, time - state.currentPosition[job][1])
+                delete!(state.currentPosition, job)
+                #state.currentPosition[job] = -2
             else
                 state.transit -= 1
             end
         else
             push!(out, TimedEvent(JoinNodeEvent(dest, job), t))
-            if (state isa TrackAllJobs)
-                state.currentPosition[job] = -1
+            if (typeof(state) <: TrackAllJobs)
+                state.currentPosition[job] = (state.currentPosition[1], -1)
             else
                 # don't need to update in this situation, if this is an external arrival then its handled in its process_event() function
                 # if its an internal arrival then it must have already been in transit so we don't need to change state.transit at all
