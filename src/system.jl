@@ -13,13 +13,13 @@ simulation, times for logging events, and a call-back function.
 """
 function simulate(params::NetworkParameters, init_state::State, init_timed_event::TimedEvent
                     ; 
-                    max_time::Float64 = 10.0, 
-                    log_times::Vector{Float64} = Float64[],
-                    callback = (time, state) -> nothing)
+                    max_time::Float64 = 10.0,
+                    callback = (time, state, data) -> nothing)
 
     # The event queue
     priority_queue = BinaryMinHeap{TimedEvent}()
 
+    data, meta = initialise_data(init_state)
 
 
     # Put the standard events in the queue
@@ -32,7 +32,7 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
     time = 0.0
 
     # Callback at simulation start
-    callback(time, state)
+    callback(time, state, data, meta)
 
     # The main discrete event simulation loop - SIMPLE!
     while true
@@ -58,12 +58,66 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
         end
 
         # Callback for each simulation event
-        callback(time, state)
+        callback(time, state, data, meta)
     end
-    callback(time, state)
+    #callback at simulation end
+    callback(time, state, data, meta)
+    return data
 end;
 
+function initialise_data(s::TrackAllJobs)::Tuple{Vector{Float64}, Vector{Float64}}
+    return Vector{Float64}(), Float64[]
+end
 
+function initialise_data(s::TrackTotals)::Tuple{Vector{Float64}, Vector{Float64}}
+    return zeros(2), zeros(3)
+end
+
+function record_data(time::Float64, state::TrackAllJobs, data::Vector{Float64}, meta::Vector{Float64})
+    while !isempty(state.sojournPush)
+        push!(data, pop!(state.sojournPush))
+    end
+end
+
+
+#meta = [prev_time, prev_count, prev_prop]
+function record_data(time::Float64, state::TrackTotals, data::Vector{Float64}, meta::Vector{Float64})
+    #push!(data2, [[time, state.transit] ; state.atNodes])
+    #return
+    node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
+    if time != 0
+        
+        data[1] = (data[1]*meta[1] + (state.transit + node_sum)*(time - meta[1])) / time
+        
+        
+        # I believe the below gives the right weighting, same with prop
+        #data[1] = (data[1]*meta[1] + meta[2]*(time - meta[1])) / time
+
+        
+
+
+        #prev_mean = data[1]
+        # we extract from the previous mean the total number of items observed up until this currentPosition
+        #prev_total = prev_mean*prev_time[1]
+        # get the new count of items by adding the weighted (according to the time interval) number of items currently in the system
+        #new_total = prev_total + (state.transit + node_sum)*(time-prev_time)
+        #new_avg = new_total / time
+        
+
+        #this is messed up, don't know which one it should be
+        if (node_sum + state.transit != 0)
+        #if (meta[2] != 0)
+            data[2] = (data[2]*meta[1] + (state.transit / (node_sum + state.transit))*(time-meta[1]) ) / time
+            #data[2] = (data[2]*meta[1] + meta[3]*(time-meta[1])) / time 
+        end
+        
+        
+    end
+    meta[1] = time
+    meta[2] = state.transit + node_sum
+    meta[3] = state.transit / (node_sum + state.transit)
+    
+end
 
 # setting up and doing simulation ----------------------------
 
@@ -175,4 +229,10 @@ function plot_emp(data)
     plot(e, f(e), legend=false)
 end
 
+function do_sim2(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
 
+    params = create_scen1(λ + 0.0)
+    state = create_init_state(state_type, params)
+    init = create_init_event(params, state)
+    return simulate(params, state, init, max_time = max_time, callback=record_data)
+end
