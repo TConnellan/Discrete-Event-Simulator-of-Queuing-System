@@ -93,7 +93,7 @@ end
 
 function create_init_event(p::NetworkParameters, s::State)
     dest = sample(collect(1:(p.L)), Weights(p.p_e))
-    return TimedEvent(ExternalArrivalEvent(dest, new_job(s)), transit_time(params))
+    return TimedEvent(ExternalArrivalEvent(dest, new_job(s)), transit_time(p))
 end
 
 
@@ -114,24 +114,47 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
         end
     else
         prev_time = [0.0]
+        prev_count = [0.0]
+        prev_prop = [0.0]
         # first entry is running stat of average number of items in system
         # second entry is running stat of proportion of total jobs in transit
         data = zeros(2)
 
         record_data = function (time::Float64, state::TrackTotals)
-            if time != 0 
-                node_sum = sum(state.atNodes)
+            node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
+            if time != 0
+                
                 data[1] = (data[1]*prev_time[1] + (state.transit + node_sum)*(time - prev_time[1])) / time
+                
+                
+                # I believe the below gives the right weighting, same with prop
+                #data[1] = (data[1]*prev_time[1] + prev_count[1]*(time - prev_time[1])) / time
 
+                
+
+
+                #prev_mean = data[1]
+                # we extract from the previous mean the total number of items observed up until this currentPosition
+                #prev_total = prev_mean*prev_time[1]
+                # get the new count of items by adding the weighted (according to the time interval) number of items currently in the system
+                #new_total = prev_total + (state.transit + node_sum)*(time-prev_time)
+
+                #new_avg = new_total / time
+                
+
+                #this is messed up, don't know which one it should be
                 if (node_sum + state.transit != 0)
-                    # don't think this is quite right
+                #if (prev_count[1] != 0)
                     data[2] = (data[2]*prev_time[1] + (state.transit / (node_sum + state.transit))*(time-prev_time[1]) ) / time
-                else
-                    # in this situation both node_sum and state.transit are 0. i.e the number of items in the system is zero. here the
-                    # proportion is not defined so I think no update should be made
+                    #data[2] = (data[2]*prev_time[1] + prev_prop[1]*(time-prev_time[1])) / time 
                 end
+                
+                
             end
             prev_time[1] = time
+            prev_count[1] = state.transit + node_sum
+            prev_prop[1] = state.transit / (node_sum + state.transit)
+            
         end
     end
 
@@ -144,7 +167,7 @@ end
 
 function plot_emp(data)
     f = ecdf(x)
-    e = collect(min(x):0.01:max(x))
+    e = collect(minimum(x):0.01:maximum(x))
     plot(e, f(e), legend=false)
 end
 

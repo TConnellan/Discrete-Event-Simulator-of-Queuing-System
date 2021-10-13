@@ -60,8 +60,7 @@ function process_event(time::Float64, state::State,
     job_join_sys(ext_event.job, ext_event.node, time, state) #effectively join_transit but deals with storing initial time
 
     new_events = join_node(time, ext_event.job, ext_event.node, state, params)
- 
-    #t = time + rand(Gamma(1/3, 3/params.λ))
+    
     t = time + ext_arr_time(params)
     dest = route_ext_arr(collect(1:params.L), params.p_e)
     push!(new_events, TimedEvent(ExternalArrivalEvent(dest, new_job(state)), t))
@@ -98,7 +97,6 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
     out = Vector{TimedEvent}()
     dest = route_int_trav(sc_event.node, params.P)
     if dest != -1
-        #t = time + rand(Gamma(1/3, 3/params.η))
         t = time + transit_time(params)
         push!(out, TimedEvent(JoinNodeEvent(dest, done_service), t))
     end
@@ -114,7 +112,6 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
     
     # if the buffer is not empty start serving a new job
     if (!isempty(state.buffers[sc_event.node]))
-        #t = time + rand(Gamma(1/3, 3/params.μ_vector[sc_event.node]))
         t = time + service_time(params, sc_event.node)
         push!(out, TimedEvent(ServiceCompleteEvent(sc_event.node), t))
         #if we need to distinguish between a job being served and in a buffer then need to update state here
@@ -134,7 +131,6 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
 
         # job is first in buffer and thus being served
         if length(state.buffers[node]) == 1
-            #t = time + rand(Gamma(1/3,3/params.μ_vector[node]))
             t= time + service_time(params, node)
             push!(new_ev, TimedEvent(ServiceCompleteEvent(node), t))
         end
@@ -143,7 +139,6 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
         job_join_node(job, node, state)
     else
         # overflow
-        #t = time + rand(Gamma(1/3, 3/params.η))
         t = time + transit_time(params)
         dest = route_int_trav(node, params.Q)
         if (dest == -1) 
