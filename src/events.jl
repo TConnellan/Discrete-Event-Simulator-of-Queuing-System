@@ -12,10 +12,6 @@ struct TimedEvent
     TimedEvent(event::Event, time::Float64) = new(event, time)
 end
 
-#TimedEvent(event::Event, time::Float64) = TimedEvent(event, 1, 1, time)
-#TimedEvent(event::Event, job::64, time::Float64) = TimedEvent(event, job, 1, time)
-# if we need the constructor for a node but no job then implement it but I don't think we need it
-
 # Comparison of two timed events - this will allow us to use them in a heap/priority-queue
 isless(te1::TimedEvent, te2::TimedEvent) = te1.time < te2.time
 
@@ -120,7 +116,6 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
 
     new_ev = Vector{TimedEvent}()
 
-    # first element in buffer is the one being served hence max elements in buffer is K + 1
     if (check_capacity(node, params, state))
         job_leave_transit(job, state)
         job_join_node(job, node, state)
@@ -130,8 +125,6 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
             t= time + service_time(params, node)
             push!(new_ev, TimedEvent(ServiceCompleteEvent(node), t))
         end
-
-        
     else
         # overflow
         t = time + transit_time(params)

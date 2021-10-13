@@ -139,6 +139,7 @@ end
 
 
 function check_capacity(node::Int64, params::NetworkParameters, state::TrackAllJobs)::Bool
+    # first element in buffer is the one being served hence max elements in buffer is K + 1
     return params.K[node] == -1 || length(state.buffers[node]) < params.K[node] + 1
 end
 
