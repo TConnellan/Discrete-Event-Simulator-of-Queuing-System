@@ -108,8 +108,8 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
         data = Vector{Float64}()
         
         record_data = function (time::Float64, state::TrackAllJobs)
-            while !isempty(state.sojournPush)
-                push!(data, pop!(state.sojournPush))
+            while !isempty(state.sojournTimes)
+                push!(data, pop!(state.sojournTimes))
             end
         end
     else
