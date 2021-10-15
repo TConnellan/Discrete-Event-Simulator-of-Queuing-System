@@ -13,7 +13,7 @@ mutable struct TrackAllJobs <: State
     currentPosition::Dict{Int64, Tuple{Float64, Int64}}
     # contains the sojourn times of all the jobs that have left the system
     # is emptied by the callback function
-    sojournPush::Vector{Float64}
+    sojournTimes::Vector{Float64}
 
     # may not need currentPosition, just have Dict or arr with entry times
     # and a collection of jobs in transit
@@ -56,7 +56,7 @@ end
 function job_leave_sys end
 
 function job_leave_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)::Nothing
-    push!(state.sojournPush, time - arr_time(job, state))
+    push!(state.sojournTimes, time - arr_time(job, state))
     delete!(state.currentPosition, job)
     return nothing
 end
