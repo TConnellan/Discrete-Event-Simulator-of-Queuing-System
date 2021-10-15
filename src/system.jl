@@ -51,7 +51,6 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
         if timed_event.event isa EndSimEvent
             break 
         end
-
         # The event may spawn 0 or more events which we put in the priority queue 
         for nte in new_timed_events
             push!(priority_queue,nte)
