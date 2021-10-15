@@ -11,6 +11,7 @@ function route_ext_arr(nodes::Vector{Int}, p_e::Vector{Float64})
     return node
 end
 
+#=
 #test function above
 nodes = collect(1:10)
 p_e = [.1, 0, 0, 0, .2, 0, 0, 0, 0, .7]
@@ -18,7 +19,7 @@ p_e = [.1, 0, 0, 0, .2, 0, 0, 0, 0, .7]
 for i=1:10
      println(route_ext_arr(nodes, p_e))
 end
-
+=#
 
 #function for project
 function route_int_trav(from_node::Int, P::Array{Float64, 2})
@@ -37,6 +38,7 @@ function route_int_trav(from_node::Int, P::Array{Float64, 2})
     return sample(nodes, prob_from_node)
 end
 
+#=
 #test function above
 P = [0 1.0 0;
     0 0 1.0;
@@ -45,6 +47,7 @@ P = [0 1.0 0;
 for i=1:3
     println("going from node $i to node ", route_int_trav(i,P) )
 end
+=#
 
 #"""
 #code below is obsolete, ignore. Can be deleted once the file is reviewed and finalised

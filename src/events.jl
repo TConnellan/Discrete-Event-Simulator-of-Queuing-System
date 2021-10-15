@@ -13,7 +13,7 @@ struct TimedEvent
 end
 
 # Comparison of two timed events - this will allow us to use them in a heap/priority-queue
-isless(te1::TimedEvent, te2::TimedEvent) = te1.time < te2.time
+isless(te1::TimedEvent, te2::TimedEvent)::Bool = te1.time < te2.time
 
 """
     new_timed_events = process_event(time, state, event)
@@ -31,7 +31,8 @@ Return an event that ends the simulation.
 """
 struct EndSimEvent <: Event end
 
-function process_event(time::Float64, state::State, params::NetworkParameters, es_event::EndSimEvent)
+function process_event(time::Float64, state::State, params::NetworkParameters, 
+                                es_event::EndSimEvent)::Vector{TimedEvent}
     println("Ending simulation at time $time.")
     return []
 end
@@ -48,9 +49,8 @@ struct ExternalArrivalEvent <: Event
     job::Int64
 end
 
-function process_event(time::Float64, state::State, 
-                        params::NetworkParameters, ext_event::ExternalArrivalEvent)::Vector{TimedEvent}
-
+function process_event(time::Float64, state::State, params::NetworkParameters, 
+                                ext_event::ExternalArrivalEvent)::Vector{TimedEvent}
     # Since the first arrival is instantaneous the state will be immediately altered in join_node
     # before any callback function is called
     job_join_sys(ext_event.job, ext_event.node, time, state) #effectively join_transit but deals with storing initial time
@@ -60,7 +60,6 @@ function process_event(time::Float64, state::State,
     t = time + ext_arr_time(params)
     dest = route_ext_arr(collect(1:params.L), params.p_e)
     push!(new_events, TimedEvent(ExternalArrivalEvent(dest, new_job(state)), t))
-
     return new_events
 end
 
@@ -73,7 +72,6 @@ end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
                         join_event::JoinNodeEvent)::Vector{TimedEvent}
-
     return join_node(time, join_event.job, join_event.node, state, params)
 end
 
@@ -87,7 +85,6 @@ end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
                             sc_event::ServiceCompleteEvent)::Vector{TimedEvent}
-    
     out = Vector{TimedEvent}()
     done_service = get_served(sc_event.node, state)
     job_leave_node(done_service, sc_event.node, state)
@@ -106,14 +103,12 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
         t = time + service_time(params, sc_event.node)
         push!(out, TimedEvent(ServiceCompleteEvent(sc_event.node), t))
     end
-
     return out
 end
 
 
 function join_node(time::Float64, job::Int64, node::Int64, state::State, 
                                 params::NetworkParameters)::Vector{TimedEvent}
-
     new_ev = Vector{TimedEvent}()
 
     if (check_capacity(node, params, state))
@@ -138,6 +133,5 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
             # don't need any update
         end
     end
-
     return new_ev
 end

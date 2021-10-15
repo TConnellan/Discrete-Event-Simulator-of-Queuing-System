@@ -1,5 +1,6 @@
 using Distributions
 using StatsBase
+using TimerOutputs
 
 include("./src/parameters.jl")
 include("./src/state.jl")

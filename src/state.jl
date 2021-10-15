@@ -8,9 +8,11 @@ abstract type State end
 
 # track all jobs
 mutable struct TrackAllJobs <: State
-    # -2 means left system, -1 means in transit
-    # maybe when a job leaves we remove it from the dictionary
+    # maps each job that is currently in the system to (entry_time, current_location). -1 means in transit
+    # when a job leaves we remove it from the dictionary
     currentPosition::Dict{Int64, Tuple{Float64, Int64}}
+    # contains the sojourn times of all the jobs that have left the system
+    # is emptied by the callback function
     sojournPush::Vector{Float64}
 
     # may not need currentPosition, just have Dict or arr with entry times
@@ -32,7 +34,7 @@ end
 # -----------
 
 function new_job(state::TrackAllJobs)::Int64
-    return state.jobCount += 1
+    return state.jobCount + 1
 end
 
 function new_job(state::TrackTotals)::Int64
@@ -44,6 +46,7 @@ function job_join_system end
 
 function job_join_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)
     state.currentPosition[job] = (time, -1)
+    state.jobcount += 1
 end   
 
 function job_join_sys(job::Int64, node::Int64, time::Float64, state::TrackTotals)::Int64
