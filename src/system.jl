@@ -13,10 +13,8 @@ simulation, times for logging events, and a call-back function.
 """
 function simulate(params::NetworkParameters, init_state::State, init_timed_event::TimedEvent
                     ; 
-                    max_time::Float64 = 10.0, 
-                    log_times::Vector{Float64} = Float64[],
+                    max_time::Float64 = 10.0,
                     callback = (time, state) -> nothing)
-
     # The event queue
     priority_queue = BinaryMinHeap{TimedEvent}()
 
@@ -51,16 +49,18 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
         if timed_event.event isa EndSimEvent
             break 
         end
-
         # The event may spawn 0 or more events which we put in the priority queue 
         for nte in new_timed_events
             push!(priority_queue,nte)
         end
 
         # Callback for each simulation event
+        
         callback(time, state)
     end
+    #callback at simulation end
     callback(time, state)
+    return 
 end;
 
 
@@ -174,5 +174,4 @@ function plot_emp(data)
     e = collect(minimum(x):0.01:maximum(x))
     plot(e, f(e), legend=false)
 end
-
 
