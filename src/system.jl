@@ -175,7 +175,7 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
     end
 
     simulate(params, state, init, max_time = max_time, callback=record_data)
-
+    print("-")
     #return data2
     return data
 end
