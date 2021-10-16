@@ -13,7 +13,7 @@ mutable struct TrackAllJobs <: State
     currentPosition::Dict{Int64, Tuple{Float64, Int64}}
     # contains the sojourn times of all the jobs that have left the system
     # is emptied by the callback function
-    sojournPush::Vector{Float64}
+    sojournTimes::Vector{Float64}
 
     # may not need currentPosition, just have Dict or arr with entry times
     # and a collection of jobs in transit
@@ -29,34 +29,47 @@ mutable struct TrackTotals <: State
     transit::Int64
 
     #buffers::Vector{Queue{Int64}}
-    #jobCount::Int64
+    jobCount::Int64
 end
 # -----------
 
+"""
+Get a new unique identifier for a job
+"""
 function new_job(state::TrackAllJobs)::Int64
     return state.jobCount + 1
 end
 
+"""
+Get a new unique identifier for a job
+"""
 function new_job(state::TrackTotals)::Int64
-    return 1
+    return state.jobCount + 1
 end
 
 # -----------
 function job_join_system end
 
-function job_join_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)
+"""
+Update the system to reflect a job joining it
+"""
+function job_join_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)::Int64
     state.currentPosition[job] = (time, -1)
-    state.jobcount += 1
-end   
+    state.jobCount += 1
+end
 
+"""
+Update the system to reflect a job joining it
+"""
 function job_join_sys(job::Int64, node::Int64, time::Float64, state::TrackTotals)::Int64
-    return state.transit += 1
+    state.transit += 1
+    state.jobCount += 1
 end
 
 function job_leave_sys end
 
 function job_leave_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)::Nothing
-    push!(state.sojournPush, time - arr_time(job, state))
+    push!(state.sojournTimes, time - arr_time(job, state))
     delete!(state.currentPosition, job)
     return nothing
 end
