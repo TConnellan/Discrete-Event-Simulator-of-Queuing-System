@@ -32,6 +32,8 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
     # Callback at simulation start
     callback(time, state)
 
+    new_events = Vector{TimedEvent}()
+
     # The main discrete event simulation loop - SIMPLE!
     while true
         # Get the next event
@@ -43,15 +45,16 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
 
 
         # Act on the event
-        new_timed_events = process_event(time, state, params, timed_event.event) 
+        #new_timed_events = 
+        process_event(time, state, params, timed_event.event, new_events) 
 
         # If the event was an end of simulation then stop
         if timed_event.event isa EndSimEvent
             break 
         end
         # The event may spawn 0 or more events which we put in the priority queue 
-        for nte in new_timed_events
-            push!(priority_queue,nte)
+        while (!isempty(new_events))
+            push!(priority_queue, pop!(new_events))
         end
 
         # Callback for each simulation event
