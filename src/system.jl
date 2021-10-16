@@ -65,11 +65,13 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
 end;
 
 function initialise_data(s::TrackAllJobs)::Tuple{Vector{Float64}, Vector{Float64}}
-    return Vector{Float64}(), Float64[]
+    out = Vector{Float64}(), Float64[]
+    sizehint!(out, 2*10^7)
+    return out
 end
 
 function initialise_data(s::TrackTotals)::Tuple{Vector{Float64}, Vector{Float64}}
-    return zeros(2), zeros(3)
+    return zeros(2), zeros(4)
 end
 
 function record_data(time::Float64, state::TrackAllJobs, data::Vector{Float64}, meta::Vector{Float64})
@@ -79,28 +81,16 @@ function record_data(time::Float64, state::TrackAllJobs, data::Vector{Float64}, 
 end
 
 
-#meta = [prev_time, prev_count, prev_prop]
+#meta = [prev_time, prev_count, prev_prop, prop_time]
 function record_data(time::Float64, state::TrackTotals, data::Vector{Float64}, meta::Vector{Float64})
     #push!(data2, [[time, state.transit] ; state.atNodes])
     #return
     node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
     if time != 0
         
-        data[1] = (data[1]*meta[1] + (state.transit + node_sum)*(time - meta[1])) / time
-        
-        
+        #data[1] = (data[1]*meta[1] + (state.transit + node_sum)*(time - meta[1])) / time
         # I believe the below gives the right weighting, same with prop
-        #data[1] = (data[1]*meta[1] + meta[2]*(time - meta[1])) / time
-
-        
-
-
-        #prev_mean = data[1]
-        # we extract from the previous mean the total number of items observed up until this currentPosition
-        #prev_total = prev_mean*prev_time[1]
-        # get the new count of items by adding the weighted (according to the time interval) number of items currently in the system
-        #new_total = prev_total + (state.transit + node_sum)*(time-prev_time)
-        #new_avg = new_total / time
+        data[1] = (data[1]*meta[1] + meta[2]*(time - meta[1])) / time
         
 
         #this is messed up, don't know which one it should be
