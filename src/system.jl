@@ -69,7 +69,6 @@ end;
 
 function initialise_data(s::TrackAllJobs)::Tuple{Vector{Float64}, Vector{Float64}}
     out = Vector{Float64}(), Float64[]
-    sizehint!(out, 2*10^7)
     return out
 end
 
@@ -78,16 +77,14 @@ function initialise_data(s::TrackTotals)::Tuple{Vector{Float64}, Vector{Float64}
 end
 
 function record_data(time::Float64, state::TrackAllJobs, data::Vector{Float64}, meta::Vector{Float64})
-    while !isempty(state.sojournPush)
-        push!(data, pop!(state.sojournPush))
+    while !isempty(state.sojournTimes)
+        push!(data, pop!(state.sojournTimes))
     end
 end
 
 
 #meta = [prev_time, prev_count, prev_prop, prop_time]
 function record_data(time::Float64, state::TrackTotals, data::Vector{Float64}, meta::Vector{Float64})
-    #push!(data2, [[time, state.transit] ; state.atNodes])
-    #return
     node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
     if time != 0
         
@@ -96,19 +93,19 @@ function record_data(time::Float64, state::TrackTotals, data::Vector{Float64}, m
         data[1] = (data[1]*meta[1] + meta[2]*(time - meta[1])) / time
         
 
-        #this is messed up, don't know which one it should be
-        if (node_sum + state.transit != 0)
-        #if (meta[2] != 0)
-            data[2] = (data[2]*meta[1] + (state.transit / (node_sum + state.transit))*(time-meta[1]) ) / time
-            #data[2] = (data[2]*meta[1] + meta[3]*(time-meta[1])) / time 
+        
+        #if (node_sum + state.transit != 0)
+        if (meta[2] != 0)
+            #data[2] = (data[2]*meta[1] + (state.transit / (node_sum + state.transit))*(time-meta[1]) ) / time
+            #data[2] = (data[2]*meta[1] + meta[3]*(time-meta[1])) / time
+            data[2] = (data[2]*meta[4] + meta[3]*(time-meta[1])) / (meta[4] + time - meta[1]) #best version?
+            meta[4] += (time - meta[1])
         end
-        
-        
     end
     meta[1] = time
     meta[2] = state.transit + node_sum
     meta[3] = state.transit / (node_sum + state.transit)
-    
+    return
 end
 
 # setting up and doing simulation ----------------------------
@@ -153,7 +150,7 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
         # setup storage for ouput
         data = Vector{Float64}()
         
-        record_data = function (time::Float64, state::TrackAllJobs)
+        record_data = function (time::Float64, state::TrackAllJobs, c::Vector{Float64},y::Vector{Float64})
             while !isempty(state.sojournTimes)
                 #println("$(state.sojournTimes)")
                 push!(data, pop!(state.sojournTimes))
@@ -170,7 +167,7 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
         data = zeros(2)
         #data2 = Vector{Vector{Float64}}()
 
-        record_data = function (time::Float64, state::TrackTotals)
+        record_data = function (time::Float64, state::TrackTotals, c::Vector{Float64},y::Vector{Float64})
             #push!(data2, [[time, state.transit] ; state.atNodes])
             #return
             node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
@@ -240,7 +237,7 @@ end
 
 function do_sim2(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
 
-    params = create_scen1(λ + 0.0)
+    params = create_scen1(λ)
     state = create_init_state(state_type, params)
     init = create_init_event(params, state)
     return simulate(params, state, init, max_time = max_time, callback=record_data)
