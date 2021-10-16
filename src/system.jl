@@ -111,21 +111,6 @@ end
 # setting up and doing simulation ----------------------------
 
 
-
-function create_scen1(λ::Float64)
-    return NetworkParameters( L=3, 
-    scv = 3.0, 
-    λ = λ, 
-    η = 4.0, 
-    μ_vector = ones(3),
-    P = [0 1.0 0;
-        0 0 1.0;
-        0 0 0],
-    Q = zeros(3,3),
-    p_e = [1.0, 0, 0],
-    K = fill(5,3))
-end
-
 function create_init_state(s, p::NetworkParameters)
     if (s <: TrackAllJobs)
         return TrackAllJobs(Dict{Int64, Tuple{Float64, Int64}}(), Float64[], [Queue{Int64}() for _ in 1:(p.L)], 0)
@@ -140,7 +125,7 @@ function create_init_event(p::NetworkParameters, s::State)
 end
 
 
-
+# deprecated, current best function is run_sim()
 function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
 
     params = create_scen1(λ + 0.0)
@@ -229,15 +214,15 @@ function plot_mean_items(Λ::Vector{Float64}, means::Vector{Float64})
     plot(Λ, means)
     end
 
-function plot_emp(data)
-    f = ecdf(x)
-    e = collect(minimum(x):0.01:maximum(x))
-    plot(e, f(e), legend=false)
+function plot_emp(data,title)
+    f = ecdf(data)
+    e = collect(minimum(data):0.01:maximum(data))
+    plot(e, f(e), legend=false,title=title)
 end
 
-function do_sim2(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
+function run_sim(state_type, param_func; λ::Float64 = 1.0, max_time::Float64=10.0)
 
-    params = create_scen1(λ)
+    params = param_func(λ)
     state = create_init_state(state_type, params)
     init = create_init_event(params, state)
     return simulate(params, state, init, max_time = max_time, callback=record_data)
