@@ -14,7 +14,7 @@ simulation, times for logging events, and a call-back function.
 function simulate(params::NetworkParameters, init_state::State, init_timed_event::TimedEvent
                     ; 
                     max_time::Float64 = 10.0,
-                    callback = (time, state, data) -> nothing)
+                    callback = (time, state, data, meta) -> nothing)
 
     # The event queue
     priority_queue = BinaryMinHeap{TimedEvent}()
