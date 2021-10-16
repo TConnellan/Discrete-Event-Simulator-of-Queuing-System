@@ -33,7 +33,7 @@ struct EndSimEvent <: Event end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
                                 es_event::EndSimEvent)::Vector{TimedEvent}
-    println("Ending simulation at time $time.")
+    #println("Ending simulation at time $time.")
     return []
 end
 

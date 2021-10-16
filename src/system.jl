@@ -87,7 +87,7 @@ function create_init_state(s, p::NetworkParameters)
     if (s <: TrackAllJobs)
         return TrackAllJobs(Dict{Int64, Tuple{Float64, Int64}}(), Float64[], [Queue{Int64}() for _ in 1:(p.L)], 0)
     else 
-        return TrackTotals(zeros(p.L), 0)
+        return TrackTotals(zeros(p.L), 0, 0)
     end
 end    
 
@@ -109,6 +109,7 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
         
         record_data = function (time::Float64, state::TrackAllJobs)
             while !isempty(state.sojournTimes)
+                #println("$(state.sojournTimes)")
                 push!(data, pop!(state.sojournTimes))
             end
         end
@@ -116,6 +117,8 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
         prev_time = [0.0]
         prev_count = [0.0]
         prev_prop = [0.0]
+        # the total cumulative up until this point in which the proportion was defined
+        prop_time = [0.0]
         # first entry is running stat of average number of items in system
         # second entry is running stat of proportion of total jobs in transit
         data = zeros(2)
@@ -127,11 +130,11 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
             node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
             if time != 0
                 
-                data[1] = (data[1]*prev_time[1] + (state.transit + node_sum)*(time - prev_time[1])) / time
+                #data[1] = (data[1]*prev_time[1] + (state.transit + node_sum)*(time - prev_time[1])) / time
                 
                 
                 # I believe the below gives the right weighting, same with prop
-                #data[1] = (data[1]*prev_time[1] + prev_count[1]*(time - prev_time[1])) / time
+                data[1] = (data[1]*prev_time[1] + prev_count[1]*(time - prev_time[1])) / time
 
                 
 
@@ -141,21 +144,31 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
                 #prev_total = prev_mean*prev_time[1]
                 # get the new count of items by adding the weighted (according to the time interval) number of items currently in the system
                 #new_total = prev_total + (state.transit + node_sum)*(time-prev_time)
-
                 #new_avg = new_total / time
-                
+        
 
                 #this is messed up, don't know which one it should be
-                if (node_sum + state.transit != 0)
-                #if (prev_count[1] != 0)
-                    data[2] = (data[2]*prev_time[1] + (state.transit / (node_sum + state.transit))*(time-prev_time[1]) ) / time
+                #if (node_sum + state.transit != 0)
+                if (prev_count[1] != 0)
+                    #this was the first way, doesn't weight using the right time periods
+                    #data[2] = (data[2]*prev_time[1] + (state.transit / (node_sum + state.transit))*(time-prev_time[1]) ) / time
+                    #this was the second way, does weight using the right time periods but
+                    #uses the full time in the denominator. There are times when the proportion is undefined
+                    #i.e no items in system so we do not want consider these time periods
                     #data[2] = (data[2]*prev_time[1] + prev_prop[1]*(time-prev_time[1])) / time 
+
+                    # the third and hopefully final way, fixes the previous problem
+                    data[2] = (data[2]*prop_time[1] + prev_prop[1]*(time-prev_time[1])) / (prop_time[1] + time - prev_time[1])
+                    prop_time[1] += (time - prev_time[1])
+                else
+                    #println("rare")
                 end
                 
                 
             end
             prev_time[1] = time
             prev_count[1] = state.transit + node_sum
+            
             prev_prop[1] = state.transit / (node_sum + state.transit)
             
         end
@@ -168,6 +181,10 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
 end
 
 
+function plot_mean_items(Λ::Vector{Float64}, means::Vector{Float64})
+    @assert length(Λ) == length(means)
+    plot(Λ, means)
+    end
 
 function plot_emp(data)
     f = ecdf(x)
