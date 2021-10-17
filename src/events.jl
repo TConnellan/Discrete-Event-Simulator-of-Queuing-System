@@ -58,7 +58,7 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
     join_node(time, ext_event.job, ext_event.node, state, params, new_ev)
 
     t = time + ext_arr_time(params)
-    dest = route_ext_arr(params.L, params.p_e)
+    dest = route_ext_arr(params.L_vec, params.p_e_w)
     push!(new_ev, TimedEvent(ExternalArrivalEvent(dest, new_job(state)), t))
     return nothing
 end
@@ -86,7 +86,7 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
     done_service = get_served(sc_event.node, state)
     job_leave_node(done_service, sc_event.node, state)
 
-    dest = route_int_trav(params.L, sc_event.node, params.P)
+    dest = route_int_trav(params.L_vec, params.P_w[sc_event.node])
     if is_leaving(dest)
         job_leave_sys(done_service, sc_event.node, time, state)
     else
@@ -121,7 +121,7 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
     else
         # overflow
         t = time + transit_time(params)
-        dest = route_int_trav(params.L, node, params.Q)
+        dest = route_int_trav(params.L_vec, params.Q_w[node])
         if (is_leaving(dest)) 
             # leave system, no new event, just need to deal with tracking
             job_leave_transit(job, state)

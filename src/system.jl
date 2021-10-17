@@ -113,14 +113,14 @@ end
 
 function create_init_state(s, p::NetworkParameters)
     if (s <: TrackAllJobs)
-        return TrackAllJobs(Dict{Int64, Tuple{Float64, Int64}}(), Float64[], [Queue{Int64}() for _ in 1:(length(p.L))], 0)
+        return TrackAllJobs(Dict{Int64, Tuple{Float64, Int64}}(), Float64[], [Queue{Int64}() for _ in 1:p.L], 0)
     else 
-        return TrackTotals(zeros(length(p.L)), 0, 0)
+        return TrackTotals(zeros(p.L), 0, 0)
     end
 end    
 
 function create_init_event(p::NetworkParameters, s::State)
-    dest = sample(p.L, Weights(p.p_e))
+    dest = route_ext_arr(p.L_vec, p.p_e_w)
     return TimedEvent(ExternalArrivalEvent(dest, new_job(s)), transit_time(p))
 end
 

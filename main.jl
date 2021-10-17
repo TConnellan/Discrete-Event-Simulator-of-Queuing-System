@@ -54,26 +54,26 @@ function get_ranges(scen::Int64)
 
     # runtime for get_plots() appears to be O(t) where t is the max_time 
 
-    # with these ranges 10^5 ran in ~60-70s on toms pc, expect 10^7 to take 100-116mins
+    # with these ranges 10^5 ran in ~45s on toms pc, expect 10^7 to take 75mins
     scen == 1 && return (collect(0.01:0.01:3), [0.1, 0.25, 0.5, 1, 1.5, 2, 3, 5, 10, 20])
 
-    # with these ranges 10^5 ran in ~70-80s on toms pc, expect 10^7 to take 116-133mins
+    # with these ranges 10^5 ran in ~50s on toms pc, expect 10^7 to take 83mins
     scen == 2 && return (collect(0.01:0.01:3), [0.1, 0.25, 0.5, 1, 1.5, 2, 3, 5, 10, 20])
 
-    # with these ranges 10^5 ran in ~60s on toms pc, expect 10^7 to take 100mins
+    # with these ranges 10^5 ran in ~30s on toms pc, expect 10^7 to take 50mins
     scen == 3 && return (collect(0.01:0.05:5), [0.1, 0.5, 1, 1.5, 2, 3, 5, 10])
 
-    # with these ranges 10^5 ran in ~112s, expect 10^7 to take 186mins
-    # 3 hours not ideal but there are interesting features that are captured with these ranges of values
+    # with these ranges 10^5 ran in ~75s, expect 10^7 to take 125mins
+    # this takes the longest but there are interesting features that are captured with these ranges of values
     scen == 4 && return (collect(0.01:0.015:1.5), [0.1, 0.5, 0.85, 1, 2, 3, 5, 7, 10])
 
-    # with these ranges 10^5 ran in ~76s, expect 10^7 to take 126mins
+    # with these ranges 10^5 ran in ~40s, expect 10^7 to take 66mins
     scen == 5 && return (collect(.01:.01:3), [.1, .5, 1, 5, 10, 20])
     throw("no such scenario specificied")
 end
 
 
-function get_plots(scenario::Int64, time::Float64)
+function get_plots(scenario::Int64, time::Float64; save::String="test")
     t = floor(Int, log10(time))
     plot12_vals, plot3_vals = get_ranges(scenario)
 
@@ -85,25 +85,26 @@ function get_plots(scenario::Int64, time::Float64)
                         ylabel="Mean number of items$(scenario == 4 ? " (log_10)" : "")",
                         title="The mean number of items in the system as\nrate of arrival (λ) varies during\nscenario $scenario with a runtime of T=10^$t.")
     
-    savefig(means_plot, ".//plots//scen$(scenario)//scen$(scenario)_means_plot.png")
+    savefig(means_plot, ".//$(save)plots//scen$(scenario)//scen$(scenario)_means_plot.png")
     
     props_plot = plot(Λ, props, legend=false,
                         xlabel="Rate of arrival λ", 
                         ylabel="Proportion in transit",
                         title="The proportion of items in transit against\nthe number of items in the total system\nas rate of arrival (λ) varies\nduring scenario $scenario with a runtime of T=10^$t.")
     
-    savefig(props_plot, ".//plots//scen$(scenario)//scen$(scenario)_props_plot")
+    savefig(props_plot, ".//$(save)plots//scen$(scenario)//scen$(scenario)_props_plot")
 
     ecdf_plot = plot_emp(soj_Λ,sojourns, xscale = scenario == 4 || scenario == 5 ? :log10 : :identity, xlims = scenario == 4 || scenario == 5 ? [0.01, :auto] : [:auto, :auto],
                             legend = scenario ==4 ? :topleft : :bottomright,
                             title="Empirical cumulative distribution functions of the sojourn\ntime of an item for varied rates of arrival (λ) during\nscenario $scenario with a runtime of T=10^$t\n",
                             xlabel_log = scenario == 4 || scenario == 5 ? " (log_10)" : "")
-    savefig(ecdf_plot, ".//plots//scen$(scenario)//scen$(scenario)_sojourn_plot")
+    savefig(ecdf_plot, ".//$(save)plots//scen$(scenario)//scen$(scenario)_sojourn_plot")
 end
 
 
-function create_all_plots(time::Float64)
+function create_all_plots(time::Float64; save::String="test")
     for i in 1:5
-        get_plots(i, time)
+        println("scenario $i")
+        @time get_plots(i, time, save=save)
     end
 end
