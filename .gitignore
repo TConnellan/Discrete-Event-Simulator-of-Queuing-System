@@ -26,3 +26,4 @@ Manifest.toml
 # plot files
 
 plots/*
+testplots/*

@@ -4,10 +4,9 @@ using StatsBase
 #using multiple dispatch
 
 #route external arrivals
-function route_ext_arr(nodes::Vector{Int}, p_e::Vector{Float64})::Int64
-    @assert length(nodes) == length(p_e)
-    w = Weights(p_e)
-    node = sample(nodes, w)
+function route_ext_arr(nodes::Vector{Int}, p_e_w::Weights{Float64, Float64, Vector{Float64}})::Int64
+    #@assert length(nodes) == length(p_e_w)
+    node = sample(nodes, p_e_w)
     return node
 end
 
@@ -22,10 +21,14 @@ end
 =#
 
 #function for project
-function route_int_trav(node_list::Vector{Int64}, from_node::Int, P::Array{Float64, 2})::Int64
-    n, m = size(P)
-    @assert n == m
-    @assert 1 <= from_node <= n
+function route_int_trav(node_list::Vector{Int64}, P_w::Weights{Float64, Float64, Vector{Float64}})::Int64
+    #n, m = size(P)
+    #@assert n == m - 1
+    #@assert 1 <= from_node <= n
+    return sample(node_list, P_w)
+
+
+
 
     # need to account for possibility that the job will leave system
     probs = P[from_node,:]
