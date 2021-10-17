@@ -11,7 +11,10 @@ mutable struct TrackAllJobs <: State
     # maps each job that is currently in the system to [entry_time, current_location, being_served]. current_location = -1 means in transit.
     # being_served is either 1 for true or 0 for false.
     # when a job leaves we remove it from the dictionary
-    currentPosition::Dict{Int64, Vector{Float64}}
+    entryTimes::Dict{Int64, Float64}
+
+    # value of 0 denotes in transit, abs(value) is the node, negative value denotes being served
+    currentPosition::Dict{Int64, Int64}
     # contains the sojourn times of all the jobs that have left the system
     # is emptied by the callback function
     sojournTimes::Vector{Float64}
@@ -55,7 +58,8 @@ function job_join_system end
 Update the system to reflect a job joining it
 """
 function job_join_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)::Int64
-    state.currentPosition[job] = [time, -1, 0]
+    state.currentPosition[job] = 0
+    state.entryTimes[job] = time
     state.jobCount += 1
 end
 
@@ -72,6 +76,7 @@ function job_leave_sys end
 function job_leave_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)::Nothing
     push!(state.sojournTimes, time - arr_time(job, state))
     delete!(state.currentPosition, job)
+    delete!(state.entryTimes, job)
     return nothing
 end
 
@@ -84,7 +89,7 @@ end
 function job_join_transit end
 
 function job_join_transit(job::Int64, node::Int64, state::TrackAllJobs)
-    state.currentPosition[job][2] = -1
+    state.currentPosition[job] = 0
 end   
 
 function job_join_transit(job::Int64, node::Int64, state::TrackTotals)::Int64
@@ -106,7 +111,7 @@ end
 #----------------
 
 function job_join_node(job::Int64, node::Int64, state::TrackAllJobs)
-    state.currentPosition[job][2] = node
+    state.currentPosition[job] = node
     enqueue!(state.buffers[node], job)
 end
 
@@ -120,7 +125,7 @@ function job_leave_node(job::Int64, node::Int64, state::TrackAllJobs)::Int64
     # job must have completed service in order to have left the node
 
     # no longer being served
-    state.currentPosition[job][3] = 0
+    # state.currentPosition[job] = 0 do in job_end_service
     #leave the buffer
     return dequeue!(state.buffers[node])
 end
@@ -135,7 +140,7 @@ end
 #---------------    
 
 function job_begin_service(job::Int64, state::TrackAllJobs)
-    state.currentPosition[job][3] = 1
+    state.currentPosition[job] = -state.currentPosition[job]
     return
 end
 
@@ -144,10 +149,18 @@ function job_begin_service(job::Int64, state::TrackTotals)
     return
 end
 
+function job_end_service(job::Int64, state::TrackAllJobs)
+    state.currentPosition[job] = -state.currentPosition[job]
+end
+
+function job_end_service(job::Int64, state::TrackTotals)
+    # do nothing
+end
+
 #--------------
 function arr_time(job::Int64, state::TrackAllJobs)::Float64
     if haskey(state.currentPosition, job)
-        return state.currentPosition[job][1]
+        return state.entryTimes[job]
     else
         throw(error("Job $job is not currently in system"))
     end

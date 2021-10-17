@@ -113,7 +113,7 @@ end
 
 function create_init_state(s, p::NetworkParameters)
     if (s <: TrackAllJobs)
-        return TrackAllJobs(Dict{Int64, Tuple{Float64, Int64}}(), Float64[], [Queue{Int64}() for _ in 1:p.L], 0)
+        return TrackAllJobs(Dict{Int64, Float64}(), Dict{Int64, Int64}(), Float64[], [Queue{Int64}() for _ in 1:p.L], 0)
     else 
         return TrackTotals(zeros(p.L), 0, 0)
     end
