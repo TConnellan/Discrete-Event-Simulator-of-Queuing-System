@@ -108,3 +108,8 @@ function create_scen5(λ::Float64)
     p_e = vcat(1,zeros(19)),
     K = fill(5,20))
 end
+
+
+function get_num_nodes(params::NetworkParameters)::Int64
+    return length(params.L)
+end
