@@ -212,12 +212,41 @@ end
 function plot_mean_items(Λ::Vector{Float64}, means::Vector{Float64})
     @assert length(Λ) == length(means)
     plot(Λ, means)
-    end
+end
 
-function plot_emp(data,title)
-    f = ecdf(data)
-    e = collect(minimum(data):0.01:maximum(data))
-    plot(e, f(e), legend=false,title=title)
+
+
+function plot_emp(Λ::Vector{Float64}, data::Vector{Vector{Float64}}; title = "emp dist plot", xscale=:identity, xlims=[:auto, :auto], legend=:bottomright, xlabel_log="")
+    m = maximum([maximum(d) for d in data])
+    f = ecdf(data[1])
+    #e = collect(0:0.01:(maximum(data[1])+0.01))
+    e = collect(0:0.01:(m+0.01))
+    k = plot(e, f(e), labels="$(Λ[1])", legend=legend, legendtitle="λ", title=title, xscale=xscale, xlims=xlims,
+                    xlabel="Sojourn time$(xlabel_log)", ylabel="Empirical Distribution")
+    #k = plot(stich_steps(e, f(e))..., labels="$(Λ[1])", legend=:bottomright, legendtitle="λ", title=title)
+
+    for i in 2:length(data)
+        f = ecdf(data[i])
+        #e = collect(0:0.01:(maximum(data[1])+0.01))
+        plot!(e, f(e), labels="$(Λ[i])")
+    end
+    return k
+end
+
+
+
+
+function stich_steps(epochs, values)
+    n = length(epochs)
+    new_epochs  = [epochs[1]]
+    new_values = [values[1]]
+    for i in 2:n
+        push!(new_epochs, epochs[i])
+        push!(new_values, values[i-1])
+        push!(new_epochs, epochs[i])
+        push!(new_values, values[i])
+    end
+    return (new_epochs, new_values)
 end
 
 function run_sim(state_type, param_func; λ::Float64 = 1.0, max_time::Float64=10.0)
