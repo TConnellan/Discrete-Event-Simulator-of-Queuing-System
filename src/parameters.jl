@@ -5,7 +5,8 @@ using Distributions
 
 #The @with_kw macro comes from the Parameters package
 @with_kw struct NetworkParameters
-    L::Int
+    #L::Int
+    L::Vector{Int}
     scv::Float64 #This is constant for all scenarios at 3.0
     λ::Float64 #This is undefined for the scenarios since it is varied
     η::Float64 #This is assumed constant for all scenarios at 4.0
@@ -33,7 +34,7 @@ function transit_time(params::NetworkParameters)::Float64
 end 
 
 function create_scen1(λ::Float64)
-    return NetworkParameters( L=3, 
+    return NetworkParameters( L=collect(1:3), 
     scv = 3.0, 
     λ = λ, 
     η = 4.0, 
@@ -47,7 +48,7 @@ function create_scen1(λ::Float64)
 end
 
 function create_scen2(λ::Float64)
-    return NetworkParameters(  L=3, 
+    return NetworkParameters(  L=collect(1:3), 
     scv = 3.0, 
     λ = λ, 
     η = 4.0, 
@@ -61,7 +62,7 @@ function create_scen2(λ::Float64)
 end
 
 function create_scen3(λ::Float64)
-    return NetworkParameters(  L=3, 
+    return NetworkParameters(  L=collect(1:3), 
     scv = 3.0, 
     λ = λ, 
     η = 4.0, 
@@ -77,7 +78,7 @@ function create_scen3(λ::Float64)
 end
 
 function create_scen4(λ::Float64)
-    return NetworkParameters(  L=5, 
+    return NetworkParameters(  L=collect(1:5), 
     scv = 3.0, 
     λ = λ, 
     η = 4.0, 
@@ -97,7 +98,7 @@ function create_scen4(λ::Float64)
 end
 
 function create_scen5(λ::Float64)
-    return NetworkParameters(  L=20, 
+    return NetworkParameters(  L=collect(1:20), 
     scv = 3.0, 
     λ = λ, 
     η = 4.0, 

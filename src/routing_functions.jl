@@ -4,7 +4,7 @@ using StatsBase
 #using multiple dispatch
 
 #route external arrivals
-function route_ext_arr(nodes::Vector{Int}, p_e::Vector{Float64})
+function route_ext_arr(nodes::Vector{Int}, p_e::Vector{Float64})::Int64
     @assert length(nodes) == length(p_e)
     w = Weights(p_e)
     node = sample(nodes, w)
@@ -22,7 +22,7 @@ end
 =#
 
 #function for project
-function route_int_trav(from_node::Int, P::Array{Float64, 2})
+function route_int_trav(node_list::Vector{Int64}, from_node::Int, P::Array{Float64, 2})::Int64
     n, m = size(P)
     @assert n == m
     @assert 1 <= from_node <= n
@@ -34,7 +34,7 @@ function route_int_trav(from_node::Int, P::Array{Float64, 2})
 
 
     # let -1 denote leaving the system
-    nodes = [collect(1:n) ; -1]
+    nodes = [node_list ; -1]
     return sample(nodes, prob_from_node)
 end
 
