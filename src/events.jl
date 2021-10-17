@@ -32,9 +32,9 @@ Return an event that ends the simulation.
 struct EndSimEvent <: Event end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
-                                es_event::EndSimEvent, new_ev::Vector{TimedEvent})
+                                es_event::EndSimEvent, new_ev::Vector{TimedEvent})::Nothing
     #println("Ending simulation at time $time.")
-    return
+    return nothing
 end
 
 """
@@ -50,7 +50,7 @@ struct ExternalArrivalEvent <: Event
 end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
-                                ext_event::ExternalArrivalEvent, new_ev::Vector{TimedEvent})
+                                ext_event::ExternalArrivalEvent, new_ev::Vector{TimedEvent})::Nothing
     # Since the first arrival is instantaneous the state will be immediately altered in join_node
     # before any callback function is called
     job_join_sys(ext_event.job, ext_event.node, time, state) #effectively join_transit but deals with storing initial time
@@ -60,7 +60,7 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
     t = time + ext_arr_time(params)
     dest = route_ext_arr(params.L, params.p_e)
     push!(new_ev, TimedEvent(ExternalArrivalEvent(dest, new_job(state)), t))
-    return 
+    return nothing
 end
 
 struct JoinNodeEvent <: Event 
@@ -71,45 +71,42 @@ struct JoinNodeEvent <: Event
 end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
-                        join_event::JoinNodeEvent, new_ev::Vector{TimedEvent})
+                        join_event::JoinNodeEvent, new_ev::Vector{TimedEvent})::Nothing
     join_node(time, join_event.job, join_event.node, state, params, new_ev)
-    return
+    return nothing
 end
 
 struct ServiceCompleteEvent <: Event
     # the destination of the new arrival
     node::Int64
-
-    # the job being completed will always be the job at the front of the queue at the node
-    # this could change if we decide to store the job being served separate from the buffer
 end
 
 function process_event(time::Float64, state::State, params::NetworkParameters, 
-                            sc_event::ServiceCompleteEvent, new_ev::Vector{TimedEvent})
-    #out = Vector{TimedEvent}()
+                            sc_event::ServiceCompleteEvent, new_ev::Vector{TimedEvent})::Nothing
     done_service = get_served(sc_event.node, state)
     job_leave_node(done_service, sc_event.node, state)
 
     dest = route_int_trav(params.L, sc_event.node, params.P)
-    if dest != -1
+    if is_leaving(dest)
+        job_leave_sys(done_service, sc_event.node, time, state)
+    else
         t = time + transit_time(params)
         push!(new_ev, TimedEvent(JoinNodeEvent(dest, done_service), t))
         job_join_transit(done_service, sc_event.node, state)
-    else
-        job_leave_sys(done_service, sc_event.node, time, state)
     end
 
     # if the buffer is not empty start serving a new job
     if jobs_at_node(sc_event.node, state) > 0
         t = time + service_time(params, sc_event.node)
         push!(new_ev, TimedEvent(ServiceCompleteEvent(sc_event.node), t))
+        job_begin_service(get_served(sc_event.node, state), state)
     end
-    return 
+    return nothing
 end
 
 
 function join_node(time::Float64, job::Int64, node::Int64, state::State, 
-                                params::NetworkParameters, new_ev::Vector{TimedEvent})
+                                params::NetworkParameters, new_ev::Vector{TimedEvent})::Nothing
     # new_ev = Vector{TimedEvent}()
 
     if (check_capacity(node, params, state))
@@ -125,7 +122,7 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
         # overflow
         t = time + transit_time(params)
         dest = route_int_trav(params.L, node, params.Q)
-        if (dest == -1) 
+        if (is_leaving(dest)) 
             # leave system, no new event, just need to deal with tracking
             job_leave_transit(job, state)
             job_leave_sys(job, node, time, state)
@@ -134,5 +131,5 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
             # don't need any update
         end
     end
-    return 
+    return nothing
 end

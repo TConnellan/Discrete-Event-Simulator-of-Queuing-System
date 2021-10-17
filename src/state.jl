@@ -8,9 +8,10 @@ abstract type State end
 
 # track all jobs
 mutable struct TrackAllJobs <: State
-    # maps each job that is currently in the system to (entry_time, current_location). -1 means in transit
+    # maps each job that is currently in the system to [entry_time, current_location, being_served]. current_location = -1 means in transit.
+    # being_served is either 1 for true or 0 for false.
     # when a job leaves we remove it from the dictionary
-    currentPosition::Dict{Int64, Tuple{Float64, Int64}}
+    currentPosition::Dict{Int64, Vector{Float64}}
     # contains the sojourn times of all the jobs that have left the system
     # is emptied by the callback function
     sojournTimes::Vector{Float64}
@@ -54,7 +55,7 @@ function job_join_system end
 Update the system to reflect a job joining it
 """
 function job_join_sys(job::Int64, node::Int64, time::Float64, state::TrackAllJobs)::Int64
-    state.currentPosition[job] = (time, -1)
+    state.currentPosition[job] = [time, -1, 0]
     state.jobCount += 1
 end
 
@@ -83,7 +84,7 @@ end
 function job_join_transit end
 
 function job_join_transit(job::Int64, node::Int64, state::TrackAllJobs)
-    state.currentPosition[job] = (arr_time(job, state), -1)
+    state.currentPosition[job][2] = -1
 end   
 
 function job_join_transit(job::Int64, node::Int64, state::TrackTotals)::Int64
@@ -105,7 +106,7 @@ end
 #----------------
 
 function job_join_node(job::Int64, node::Int64, state::TrackAllJobs)
-    state.currentPosition[job] = (arr_time(job, state), node)
+    state.currentPosition[job][2] = node
     enqueue!(state.buffers[node], job)
 end
 
@@ -116,12 +117,15 @@ end
 function job_leave_node end
 
 function job_leave_node(job::Int64, node::Int64, state::TrackAllJobs)::Int64
-    # do nothing, need the new location so will be handled in the join function that is also called
+    # job must have completed service in order to have left the node
+
+    # no longer being served
+    state.currentPosition[job][3] = 0
+    #leave the buffer
     return dequeue!(state.buffers[node])
 end
 
 function job_leave_node(job::Int64, node::Int64, state::TrackTotals)::Int64
-    #println("node: $node number: $(state.atNodes[node]) : atnodes: $(state.atNodes)")
     @assert state.atNodes[node] >= 1
     state.atNodes[node] -= 1
     return 1
@@ -130,6 +134,17 @@ end
 
 #---------------    
 
+function job_begin_service(job::Int64, state::TrackAllJobs)
+    state.currentPosition[job][3] = 1
+    return
+end
+
+function job_begin_service(job::Int64, state::TrackTotals)
+    # do nothing
+    return
+end
+
+#--------------
 function arr_time(job::Int64, state::TrackAllJobs)::Float64
     if haskey(state.currentPosition, job)
         return state.currentPosition[job][1]
