@@ -77,8 +77,9 @@ function initialise_data(s::TrackTotals)::Tuple{Vector{Float64}, Vector{Float64}
 end
 
 function record_data(time::Float64, state::TrackAllJobs, data::Vector{Float64}, meta::Vector{Float64})
-    while !isempty(state.sojournTimes)
-        push!(data, pop!(state.sojournTimes))
+    if state.sojournTime != -1
+        push!(data, state.sojournTime)
+        state.sojournTime = -1
     end
 end
 
@@ -113,7 +114,7 @@ end
 
 function create_init_state(s, p::NetworkParameters)
     if (s <: TrackAllJobs)
-        return TrackAllJobs(Dict{Int64, Float64}(), Dict{Int64, Int64}(), Float64[], [Queue{Int64}() for _ in 1:p.L], 0)
+        return TrackAllJobs(Dict{Int64, Float64}(), Dict{Int64, Int64}(), -1, [Queue{Int64}() for _ in 1:p.L], 0)
     else 
         return TrackTotals(zeros(p.L), 0, 0)
     end

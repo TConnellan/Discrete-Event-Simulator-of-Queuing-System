@@ -38,10 +38,10 @@ function collect_data(scenario, plot12_vals, plot3_vals, time)
     props = Vector{Float64}(undef, length(Λ))
     sojourns = Vector{Vector{Float64}}(undef, length(soj_Λ))
 
-    for (i, λ) in enumerate(Λ)
+    @inbounds for (i, λ) in enumerate(Λ)
         means[i], props[i] = run_sim(TrackTotals, scenario, λ=λ, max_time = time)
     end
-    for (i,λ) in enumerate(soj_Λ)
+    @inbounds for (i,λ) in enumerate(soj_Λ)
         sojourns[i] = run_sim(TrackAllJobs, scenario, λ=λ, max_time=time)
     end
 
