@@ -4,7 +4,7 @@ using DataStructures
 using Distributions
 
 #The @with_kw macro comes from the Parameters package
-@with_kw struct NetworkParameters
+@with_kw mutable struct NetworkParameters
     #L::Int
     L::Int64
     scv::Float64 #This is constant for all scenarios at 3.0
