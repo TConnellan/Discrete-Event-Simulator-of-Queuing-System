@@ -20,22 +20,6 @@ using Distributions
     P_w::Vector{Weights{Float64, Float64, Vector{Float64}}}
     Q_w::Vector{Weights{Float64, Float64, Vector{Float64}}}
     p_e_w::Weights{Float64, Float64, Vector{Float64}}
-    #=
-    function NetworkParameters(L::Int64,
-                                scv::Float64,
-                                λ::Float64,
-                                η::Float64,
-                                μ_vector::Vector{Float64},
-                                P::Matrix{Float64},
-                                Q::Matrix{Float64},
-                                p_e::Vector{Float64},
-                                K::Vector{Int64},
-                                L_vec::Vector{Int64},
-                                P_w::Weights{Float64, Float64, Vector{Float64}},
-                                Q_w::Weights{Float64, Float64, Vector{Float64}},
-                                p_e_w::Weights{Float64, Float64, Vector{Float64}})
-        return new(L, scv, λ, η, μ_vector, P, Q, p_e, K, L_vec, P_w, Q_w, p_e_w)
-    end=#
 end
 
 function NetworkParameters(L::Int64,

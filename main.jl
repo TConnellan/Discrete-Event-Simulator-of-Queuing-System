@@ -54,21 +54,24 @@ function get_ranges(scen::Int64)
 
     # runtime for get_plots() appears to be O(t) where t is the max_time 
 
-    # with these ranges 10^5 ran in ~45s on toms pc, expect 10^7 to take 75mins
-    scen == 1 && return (collect(0.01:0.01:3), [0.1, 0.25, 0.5, 1, 1.5, 2, 3, 5, 10, 20])
+    # with these ranges 10^5 ran in ~36s on toms pc, expect 10^7 to take 60mins
+    scen == 1 && return ([collect(0.01:0.01:3) ;5 ;10 ;15 ;20], [0.1, 0.25, 0.5, 1, 1.5, 2, 3, 5, 10, 20])
 
-    # with these ranges 10^5 ran in ~50s on toms pc, expect 10^7 to take 83mins
-    scen == 2 && return (collect(0.01:0.01:3), [0.1, 0.25, 0.5, 1, 1.5, 2, 3, 5, 10, 20])
+    # with these ranges 10^5 ran in ~40s on toms pc, expect 10^7 to take 66mins
+    scen == 2 && return ([collect(0.01:0.01:3) ;5 ;10 ;15 ;20], [0.1, 0.25, 0.5, 1, 1.5, 2, 3, 5, 10, 20])
 
-    # with these ranges 10^5 ran in ~30s on toms pc, expect 10^7 to take 50mins
-    scen == 3 && return (collect(0.01:0.05:5), [0.1, 0.5, 1, 1.5, 2, 3, 5, 10])
+    # with these ranges 10^5 ran in ~25s on toms pc, expect 10^7 to take 41mins
+    scen == 3 && return ([collect(0.01:0.05:5) ;5 ;10 ;15 ;20], [0.1, 0.5, 1, 1.5, 2, 3, 5, 10])
 
-    # with these ranges 10^5 ran in ~75s, expect 10^7 to take 125mins
+    # with these ranges 10^5 ran in ~65s, expect 10^7 to take 108mins
     # this takes the longest but there are interesting features that are captured with these ranges of values
-    scen == 4 && return (collect(0.01:0.015:1.5), [0.1, 0.5, 0.85, 1, 2, 3, 5, 7, 10])
+    # hard to do sojourn plot with these values without using log scale on the x-axis
+    # log-scale on y-acis of first plot makes it look clearer too
+    scen == 4 && return ([collect(0.01:0.015:1.5) ;5], [0.1, 0.5, 0.85, 1, 2, 3, 5, 7, 10])
 
-    # with these ranges 10^5 ran in ~40s, expect 10^7 to take 66mins
-    scen == 5 && return (collect(.01:.01:3), [.1, .5, 1, 5, 10, 20])
+    # with these ranges 10^5 ran in ~30s, expect 10^7 to take 50mins
+    # hard to do sojourn plot with these values without using log scale on the x-axis
+    scen == 5 && return ([collect(.01:.01:3) ;5 ;10 ;15 ;20], [.1, .5, 1, 5, 10, 20])
     throw("no such scenario specificied")
 end
 
