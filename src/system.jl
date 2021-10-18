@@ -19,6 +19,8 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
     # The event queue
     priority_queue = BinaryMinHeap{TimedEvent}()
 
+
+    #meta = [prev_time, prev_count, prev_prop, prop_time]
     data, meta = initialise_data(init_state)
 
 
@@ -64,6 +66,10 @@ function simulate(params::NetworkParameters, init_state::State, init_timed_event
     end
     #callback at simulation end
     callback(time, state, data, meta)
+    if (typeof(state) <: TrackTotals)
+        data[1] = data[1] / time
+        data[2] = data[2] / time
+    end
     return data
 end;
 
@@ -73,7 +79,7 @@ function initialise_data(s::TrackAllJobs)::Tuple{Vector{Float64}, Vector{Float64
 end
 
 function initialise_data(s::TrackTotals)::Tuple{Vector{Float64}, Vector{Float64}}
-    return zeros(2), zeros(4)
+    return zeros(2), zeros(3)
 end
 
 function record_data(time::Float64, state::TrackAllJobs, data::Vector{Float64}, meta::Vector{Float64})
@@ -84,23 +90,21 @@ function record_data(time::Float64, state::TrackAllJobs, data::Vector{Float64}, 
 end
 
 
-#meta = [prev_time, prev_count, prev_prop, prop_time]
+#meta = [prev_time, prev_count, prev_prop]
 function record_data(time::Float64, state::TrackTotals, data::Vector{Float64}, meta::Vector{Float64})
     node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
     if time != 0
-        
+        time_step = time - meta[1]
         #data[1] = (data[1]*meta[1] + (state.transit + node_sum)*(time - meta[1])) / time
         # I believe the below gives the right weighting, same with prop
-        data[1] = (data[1]*meta[1] + meta[2]*(time - meta[1])) / time
+        data[1] = data[1] + meta[2]*time_step
         
 
         
-        #if (node_sum + state.transit != 0)
+        # make sure the proportion is defined in the time-period ending at time
         if (meta[2] != 0)
-            #data[2] = (data[2]*meta[1] + (state.transit / (node_sum + state.transit))*(time-meta[1]) ) / time
-            #data[2] = (data[2]*meta[1] + meta[3]*(time-meta[1])) / time
-            data[2] = (data[2]*meta[4] + meta[3]*(time-meta[1])) / (meta[4] + time - meta[1]) #best version?
-            meta[4] += (time - meta[1])
+            # add to our running proportion count
+            data[2] += meta[3]*time_step
         end
     end
     meta[1] = time
@@ -125,7 +129,7 @@ function create_init_event(p::NetworkParameters, s::State)
     return TimedEvent(ExternalArrivalEvent(dest, new_job(s)), transit_time(p))
 end
 
-
+#=
 # deprecated, current best function is run_sim()
 function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
 
@@ -208,6 +212,7 @@ function do_sim(state_type; λ::Float64 = 1.0, max_time::Float64=10.0)
     #return data2
     return data
 end
+=#
 
 
 function plot_mean_items(Λ::Vector{Float64}, means::Vector{Float64})
