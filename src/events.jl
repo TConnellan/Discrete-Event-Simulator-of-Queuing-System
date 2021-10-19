@@ -12,6 +12,8 @@ struct TimedEvent
     TimedEvent(event::Event, time::Float64) = new(event, time)
 end
 
+struct PlaceHolderEvent <: Event end
+
 # Comparison of two timed events - this will allow us to use them in a heap/priority-queue
 isless(te1::TimedEvent, te2::TimedEvent)::Bool = te1.time < te2.time
 
@@ -132,4 +134,35 @@ function join_node(time::Float64, job::Int64, node::Int64, state::State,
         end
     end
     return nothing
+end
+
+
+function add_events(event_list::Vector{TimedEvent}, event::TimedEvent)::Nothing
+    if isnothing(event_list[1])
+        event_list[1] = event
+    elseif isnothing(event_list[2])
+        event_list[2] = event
+    else
+        throw("more than two new events generated")
+    end
+    return nothing
+end
+
+function has_events(evl::Vector{TimedEvent})::Bool
+    #println("$(!isnothing(evl[1]))              $(!isnothing(evl[2]))")
+    return !(evl[1].event <: PlaceHolderEvent) || !(evl[2].event <: PlaceHolderEvent)
+end
+
+function get_events(evl::Vector{TimedEvent})::TimedEvent
+    if !(evl[1].event <: PlaceHolderEvent)
+        temp = evl[1]
+        evl[1] = TimedEvent(PlaceHolderEvent(), 0) 
+        return temp
+    elseif !(evl[2].Event <: PlaceHolderEvent)
+        temp = evl[2]
+        evl[2] = TimedEvent(PlaceHolderEvent(), 0) 
+        return temp
+    else
+        throw("called get_events with no events in vector")
+    end
 end
