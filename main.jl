@@ -8,32 +8,12 @@ include("./src/events.jl")
 include("./src/system.jl")
 include("./src/routing_functions.jl")
 
+"""
+Gets data simulated from a specific set of parameters, determined by the function scenario,
+for a range of arrival rate values determined by Λ and soj_Λ for a time horizon determined by time.
+"""
+function collect_data(scenario, Λ, soj_Λ, time)
 
-
-
-# scenario 1
-# collect_data(create_scen1, 0.01, 0.01, 3, 1e4) runs in ~12s on my prev_count
-# as we increase the time horizon by a factor of 10, the runtime increase by about a factor of 10
-# so i think I could run collect_data(create_scen1, 0.01, 0.01, 3, 1e7) in 3-4 hours
-
-# scenario 2
-
-
-# scenario 3
-
-# scenario 4 , λ from 0 to 1, with larger λ more and more jobs accumulate at the first node, plot 1 begins to diverge and plot 2 converges to 0
-# may have to use log scale on the y-axis
-
-# scenario 5
-
-
-
-#function collect_data(scenario, start, step, fin, soj_start, soj_step, soj_fin, time)
-function collect_data(scenario, plot12_vals, plot3_vals, time)
-
-
-    Λ = plot12_vals
-    soj_Λ = plot3_vals
     means = Vector{Float64}(undef, length(Λ))
     props = Vector{Float64}(undef, length(Λ))
     sojourns = Vector{Vector{Float64}}(undef, length(soj_Λ))
@@ -48,41 +28,55 @@ function collect_data(scenario, plot12_vals, plot3_vals, time)
     return Λ, means, props, soj_Λ, sojourns
 end
 
+"""
+Specifies the range of λ values for each scenario. 
+"""
 function get_ranges(scen::Int64)
-    # first array is λ values for first 2 plots
-    # second array are values for third plot
-
-    # runtime for get_plots() appears to be O(t) where t is the max_time 
-
-    # with these ranges 10^5 ran in ~36s on toms pc, expect 10^7 to take 60mins
     scen == 1 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10])
-
-    # with these ranges 10^5 ran in ~40s on toms pc, expect 10^7 to take 66mins
     scen == 2 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10]) 
-
-    # with these ranges 10^5 ran in ~25s on toms pc, expect 10^7 to take 41mins
     scen == 3 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10])
-
-    # with these ranges 10^5 ran in ~65s, expect 10^7 to take 108mins
-    # this takes the longest but there are interesting features that are captured with these ranges of values
-    # hard to do sojourn plot with these values without using log scale on the x-axis
-    # log-scale on y-acis of first plot makes it look clearer too
     scen == 4 && return (collect(0.75:0.01:1.1), [0.01, 0.25, 0.5, .75, .85, .9])
-
-    # with these ranges 10^5 ran in ~30s, expect 10^7 to take 50mins
-    # hard to do sojourn plot with these values without using log scale on the x-axis
     scen == 5 && return (collect(.01:.01:3), [0.1, 0.5, 2, 5, 10])
     throw("no such scenario specificied")
 end
 
+"""
+Specifies the x-axis limits in the sojourn time distribution plots for each scenario.
+"""
 function get_lims(scen::Int64)
     scen == 1 && return [:auto, 40]
     scen == 2 && return [:auto, 80]
     scen == 3 && return [:auto, 100]
     scen == 4 && return [:auto, 300]
     scen == 5 && return [:auto, 25]
+    throw("no such")
 end
 
+"""
+Plots an/many empirical distribution function/s for each of the values in Λ and the corresponding sojourn data.
+"""
+function plot_emp(Λ::Vector{Float64}, data::Vector{Vector{Float64}}; title = "emp dist plot", xscale=:identity, xlims=[:auto, :auto], legend=:bottomright, xlabel_log="")
+    # find the greatest sojourn time across all simulations
+    m = maximum([maximum(d) for d in data])
+    # construct empirical cumulative distribution function and range to compute it over
+    f = ecdf(data[1])
+    e = collect(0:0.01:(m+0.01))
+    # create plot
+    ecdfs_plot = plot(e, f(e), labels="$(Λ[1])", legend=legend, legendtitle="λ", title=title, xscale=xscale, xlims=xlims,
+                    xlabel="Sojourn time$(xlabel_log)", ylabel="Empirical Distribution")
+
+    # add all other functions to the same plot
+    for i in 2:length(data)
+        f = ecdf(data[i])
+        plot!(e, f(e), labels="$(Λ[i])")
+    end
+    return ecdfs_plot
+end
+
+"""
+Creates and saves plots for a specific scenario and time horizon, requires a pre-existing file structure
+The folder to be saved under can be determined by the save variable.
+"""
 function get_plots(scenario::Int64, time::Float64; save::String="test")
     t = floor(Int, log10(time))
     plot12_vals, plot3_vals = get_ranges(scenario)
@@ -114,9 +108,11 @@ function get_plots(scenario::Int64, time::Float64; save::String="test")
 end
 
 
+"""
+Creates and saves plots for each scenario.
+"""
 function create_all_plots(time::Float64; save::String="test")
     for i in 1:5
-        println("scenario $i")
-        @time get_plots(i, time, save=save)
+        get_plots(i, time, save=save)
     end
 end
