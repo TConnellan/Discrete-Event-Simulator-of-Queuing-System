@@ -108,16 +108,20 @@ and meta = [prev_time, prev_count, prev_prop] is metadata to compute the running
 function record_data(time::Float64, state::TrackTotals, data::Vector{Float64}, meta::Vector{Float64})
     node_sum = sum(state.atNodes) # the total number of items either being served or in a buffer at the nodes
     if time != 0
+        # weight for the currently observed data
         time_step = time - meta[1]
         
+        # accumulate total counts
         data[1] = data[1] + meta[2]*time_step
 
         # make sure the proportion is defined in the time-period ending at time
+        # if undefined we add 0 so unchanged
         if (meta[2] != 0)
             # add to our running proportion count
             data[2] += meta[3]*time_step
         end
     end
+    # update metadata
     meta[1] = time
     meta[2] = state.transit + node_sum
     meta[3] = state.transit / (node_sum + state.transit)
