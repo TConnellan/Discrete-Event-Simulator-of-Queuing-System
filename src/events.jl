@@ -101,7 +101,7 @@ function process_event(time::Float64, state::State, params::NetworkParameters,
                             sc_event::ServiceCompleteEvent, new_ev::Vector{TimedEvent})::Nothing
     # determined what job has completed service and update the state to reflect this
     done_service = get_served(sc_event.node, state)
-    job_end_service(job, state)
+    job_end_service(done_service, state)
     job_leave_node(done_service, sc_event.node, state)
 
     # route the next destination of the job

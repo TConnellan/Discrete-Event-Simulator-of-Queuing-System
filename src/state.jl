@@ -188,7 +188,7 @@ end
 Update the system to reflect a job ending service
 """
 function job_end_service(job::Int64, state::TrackAllJobs)
-    state.currentPosition[job] = -state.currentPosition[job]
+    state.currentPosition[job] = abs(state.currentPosition[job])
 end
 
 """
