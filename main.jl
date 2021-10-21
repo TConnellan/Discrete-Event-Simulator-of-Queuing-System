@@ -14,12 +14,26 @@ for a range of arrival rate values determined by Λ and soj_Λ for a time horizo
 """
 function collect_data(scenario, Λ, soj_Λ, time)
 
-    means = Vector{Float64}(undef, length(Λ))
-    props = Vector{Float64}(undef, length(Λ))
+    #means = Vector{Float64}(undef, length(Λ))
+    #props = Vector{Float64}(undef, length(Λ))
+    means = Vector{Float64}()
+    props = Vector{Float64}()
     sojourns = Vector{Vector{Float64}}(undef, length(soj_Λ))
 
     @inbounds for (i, λ) in enumerate(Λ)
-        means[i], props[i] = run_sim(TrackTotals, scenario, λ=λ, max_time = time)
+        if scenario == create_scen4
+            x, y = run_sim(TrackTotals, scenario, λ=λ, max_time = time)
+            if 0.75 <= λ <= 1
+                push!(means, x)
+                push!(props, y)
+            else
+                push!(props, y)
+            end
+        else
+            x, y = run_sim(TrackTotals, scenario, λ=λ, max_time = time)
+            push!(means, x)
+            push!(props, y)
+        end
     end
     @inbounds for (i,λ) in enumerate(soj_Λ)
         sojourns[i] = run_sim(TrackAllJobs, scenario, λ=λ, max_time=time)
@@ -35,7 +49,7 @@ function get_ranges(scen::Int64)
     scen == 1 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10])
     scen == 2 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10]) 
     scen == 3 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10])
-    scen == 4 && return (collect(0.75:0.01:1.1), [0.01, 0.25, 0.5, .75, .85, .9])
+    scen == 4 && return (collect(0.01:0.01:1.1), [0.01, 0.25, 0.5, .75, .85, .9])
     scen == 5 && return (collect(.01:.01:3), [0.1, 0.5, 2, 5, 10])
     throw("no such scenario specificied")
 end
@@ -79,19 +93,25 @@ The folder to be saved under can be determined by the save variable.
 """
 function get_plots(scenario::Int64, time::Float64; save::String="test")
     t = floor(Int, log10(time))
-    plot12_vals, plot3_vals = get_ranges(scenario)
+    λ_vals, λ_soj_vals = get_ranges(scenario)
 
     scens = [create_scen1, create_scen2, create_scen3, create_scen4, create_scen5]
-    Λ, means, props, soj_Λ, sojourns = collect_data(scens[scenario], plot12_vals, plot3_vals, time)
-    means_plot = plot(Λ, means, legend=false,
-                        yscale= scenario == -4 ? :log10 : :identity,
-                        xlabel="Rate of arrival λ", 
+    Λ, means, props, soj_Λ, sojourns = collect_data(scens[scenario], λ_vals, λ_soj_vals, time)
+    if scenario != 4
+        Λ_props = Λ
+        Λ_means = Λ
+    else
+        Λ_props = Λ
+        Λ_means = [0.75:0.01:1]
+    end
+    means_plot = plot(Λ_means, means, legend=false,
+                        xlabel="Rate of arrival λ",
                         ylabel="Mean number of items",
                         title="The mean number of items in the system as\n λ varies with a time horizon of T=10^$t")
     
     savefig(means_plot, ".//$(save)plots//scen$(scenario)//scen$(scenario)_means_plot.png")
     
-    props_plot = plot(Λ, props, legend=false,
+    props_plot = plot(Λ_props, props, legend=false,
                         xlabel="Rate of arrival λ", 
                         ylabel="Proportion in transit",
                         title="The proportion of items in orbit\nas λ varies with a time horizon of T=10^$t")
