@@ -7,13 +7,13 @@
 A discrete event simulator for a finite item-station-service system in continous time
 
 Simulate and create/save plots based on the predefined scenarios by running main.jl and then calling the create_all_plots(t, save="") where t is your
-desired time-horizon as a float. This requires a pre-existing folder structure of
+desired time-horizon as a float. This requires a pre-existing folder structure of  
 plots  
-&nbsp;&nbsp;&nbsp;&nbsp;scen1  
-&nbsp;&nbsp;&nbsp;&nbsp;scen2  
-&nbsp;&nbsp;&nbsp;&nbsp;scen3  
-&nbsp;&nbsp;&nbsp;&nbsp;scen4  
-&nbsp;&nbsp;&nbsp;&nbsp;scen5  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scen1  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scen2  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scen3  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scen4  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scen5  
 
 If you wish to run for a new scenario then you will need to specify a function (of lambda) to create the parameter struct
 and call collect_data(scenario_function, lambda_vals1, lambda_vals2, time) where lambda_vals1 are the values of which you wish
