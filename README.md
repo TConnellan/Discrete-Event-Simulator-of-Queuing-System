@@ -2,7 +2,7 @@
 
 A discrete event simulator for a finite item-station-service system in continous time
 
-Simulate and create/save plots based on the predefined scenarios by calling the create_all_plots(t, save="") where t is your
+Simulate and create/save plots based on the predefined scenarios by running main.jl and then calling the create_all_plots(t, save="") where t is your
 desired time-horizon as a float. This requires a pre-existing folder structure of
 plots
     scen1

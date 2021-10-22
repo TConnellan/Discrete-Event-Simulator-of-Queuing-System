@@ -14,16 +14,16 @@ for a range of arrival rate values determined by Λ and soj_Λ for a time horizo
 """
 function collect_data(scenario, Λ, soj_Λ, time)
 
-    #means = Vector{Float64}(undef, length(Λ))
-    #props = Vector{Float64}(undef, length(Λ))
     means = Vector{Float64}()
     props = Vector{Float64}()
     sojourns = Vector{Vector{Float64}}(undef, length(soj_Λ))
 
+    # collect mean and proportion data
     @inbounds for (i, λ) in enumerate(Λ)
+        # scenario 4 uses different λ ranges for the first two plots
         if scenario == create_scen4
             x, y = run_sim(TrackTotals, scenario, λ=λ, max_time = time)
-            if 0.75 <= λ <= 1
+            if 0.75 <= λ <= 0.9
                 push!(means, x)
                 push!(props, y)
             else
@@ -35,6 +35,8 @@ function collect_data(scenario, Λ, soj_Λ, time)
             push!(props, y)
         end
     end
+
+    # collect sojourn data
     @inbounds for (i,λ) in enumerate(soj_Λ)
         sojourns[i] = run_sim(TrackAllJobs, scenario, λ=λ, max_time=time)
     end
@@ -49,7 +51,9 @@ function get_ranges(scen::Int64)
     scen == 1 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10])
     scen == 2 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10]) 
     scen == 3 && return ([collect(0.01:0.01:1.) ; collect(1.1:0.1:10) ;15 ;20], [0.1, 0.5, 1.5, 3, 10])
-    scen == 4 && return (collect(0.01:0.01:1.1), [0.01, 0.25, 0.5, .75, .85, .9])
+    scen == 4 && return ([collect(0.001:0.001:0.009) ; collect(0.01:0.01:0.75) ; collect(0.751:0.001:0.9) ; 
+                                                                                collect(0.91:0.01:1.1)], 
+                                                                                [0.01, 0.25, 0.5, .75, .85, .9])
     scen == 5 && return (collect(.01:.01:3), [0.1, 0.5, 2, 5, 10])
     throw("no such scenario specificied")
 end
@@ -69,7 +73,7 @@ end
 """
 Plots an/many empirical distribution function/s for each of the values in Λ and the corresponding sojourn data.
 """
-function plot_emp(Λ::Vector{Float64}, data::Vector{Vector{Float64}}; title = "emp dist plot", xscale=:identity, xlims=[:auto, :auto], legend=:bottomright, xlabel_log="")
+function plot_emp(Λ::Vector{Float64}, data::Vector{Vector{Float64}}; title = "emp dist plot", xscale=:identity, xlims=[:auto, :auto], legend=:bottomright)
     # find the greatest sojourn time across all simulations
     m = maximum([maximum(d) for d in data])
     # construct empirical cumulative distribution function and range to compute it over
@@ -77,7 +81,7 @@ function plot_emp(Λ::Vector{Float64}, data::Vector{Vector{Float64}}; title = "e
     e = collect(0:0.01:(m+0.01))
     # create plot
     ecdfs_plot = plot(e, f(e), labels="$(Λ[1])", legend=legend, legendtitle="λ", title=title, xscale=xscale, xlims=xlims,
-                    xlabel="Sojourn time$(xlabel_log)", ylabel="Empirical Distribution")
+                    xlabel="Sojourn time", ylabel="Empirical Distribution")
 
     # add all other functions to the same plot
     for i in 2:length(data)
@@ -102,7 +106,7 @@ function get_plots(scenario::Int64, time::Float64; save::String="test")
         Λ_means = Λ
     else
         Λ_props = Λ
-        Λ_means = [0.75:0.01:1]
+        Λ_means = [0.75:0.001:.9]
     end
     means_plot = plot(Λ_means, means, legend=false,
                         xlabel="Rate of arrival λ",
@@ -122,8 +126,7 @@ function get_plots(scenario::Int64, time::Float64; save::String="test")
 
     ecdf_plot = plot_emp(soj_Λ,sojourns, xlims = x_scale,
                             legend = :bottomright,
-                            title="ECDF's of the sojourn time of an item\n for varied λ with a time horizon of T=10^$t\n",
-                            xlabel_log = "")
+                            title="ECDF's of the sojourn time of an item\n for varied λ with a time horizon of T=10^$t\n")
     savefig(ecdf_plot, ".//$(save)plots//scen$(scenario)//scen$(scenario)_sojourn_plot")
 end
 

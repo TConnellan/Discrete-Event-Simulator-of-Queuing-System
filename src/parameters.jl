@@ -19,10 +19,10 @@ Stores the all the parameters needed to determine a system
     p_e::Vector{Float64} #external arrival distribution
     K::Vector{Int64} #-1 means infinity 
 
-    L_vec::Vector{Int64}
-    P_w::Vector{Weights{Float64, Float64, Vector{Float64}}}
-    Q_w::Vector{Weights{Float64, Float64, Vector{Float64}}}
-    p_e_w::Weights{Float64, Float64, Vector{Float64}}
+    L_vec::Vector{Int64} # all possible destinations of travel
+    P_w::Vector{Weights{Float64, Float64, Vector{Float64}}} # probability weights for routing from nodes after service
+    Q_w::Vector{Weights{Float64, Float64, Vector{Float64}}} # probability weights for routing from nodes after overflow
+    p_e_w::Weights{Float64, Float64, Vector{Float64}} # probability weights for routing when entering system
 end
 
 """
