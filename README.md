@@ -1,4 +1,8 @@
-# Thomas-Connellan-and-Marco-Maggiore-2504-2021-PROJECT2
+# MATH2504 - Project 2
+
+## Marco Maggiore & Thomas Connellan
+
+[Assignment Instructions](https://courses.smp.uq.edu.au/MATH2504/assessment_html/project2.html)
 
 A discrete event simulator for a finite item-station-service system in continous time
 
