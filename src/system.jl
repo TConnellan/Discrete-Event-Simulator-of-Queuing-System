@@ -146,7 +146,7 @@ Creates an initial event determined by the parameters and state
 """
 function create_init_event(p::NetworkParameters, s::State)
     # find initial destination
-    dest = route_ext_arr(p.L_vec, p.p_e_w)
+    dest = route_travel(p.L_vec, p.p_e_w)
     # find time of arrival
     t = transit_time(p)
     return TimedEvent(ExternalArrivalEvent(dest, new_job(s)), t)
