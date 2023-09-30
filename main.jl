@@ -14,31 +14,55 @@ for a range of arrival rate values determined by Λ and soj_Λ for a time horizo
 """
 function collect_data(scenario, Λ, soj_Λ, time)
 
-    means = Vector{Float64}()
-    props = Vector{Float64}()
+    means = Vector{Float64}(undef, length(Λ))
+    mean_lock = ReentrantLock()
+    props = Vector{Float64}(undef, length(Λ))
+    prop_lock = ReentrantLock()
     sojourns = Vector{Vector{Float64}}(undef, length(soj_Λ))
+    soj_lock = ReentrantLock()
 
     # collect mean and proportion data
-    @inbounds for (i, λ) in enumerate(Λ)
+    
         # scenario 4 uses different λ ranges for the first two plots
-        if scenario == create_scen4
+    #for (i, λ) in enumerate(Λ)
+    Threads.@threads  for i in 1:size(Λ)[1]
+        λ = Λ[i]
+        if false && scenario == create_scen4
             x, y = run_sim(TrackTotals, scenario, λ=λ, max_time = time)
             if 0.75 <= λ <= 0.9
-                push!(means, x)
-                push!(props, y)
+                lock(mean_lock) do 
+                    # push!(means, x)
+                    means[i] = x
+                end
+                lock(prop_lock) do 
+                    # push!(props, y)
+                    props[i] = y
+                end
             else
-                push!(props, y)
+                lock(prop_lock) do 
+                    # push!(props, y)
+                    props[i] = y
+                end
             end
         else
             x, y = run_sim(TrackTotals, scenario, λ=λ, max_time = time)
-            push!(means, x)
-            push!(props, y)
+            lock(mean_lock) do 
+                # push!(means, x)
+                means[i] = x
+            end
+            lock(prop_lock) do 
+                # push!(props, y)
+                props[i] = y
+            end
         end
     end
 
     # collect sojourn data
-    @inbounds for (i,λ) in enumerate(soj_Λ)
-        sojourns[i] = run_sim(TrackAllJobs, scenario, λ=λ, max_time=time)
+    Threads.@threads for i in 1:size(soj_Λ)[1]
+        λ = soj_Λ[i]
+        lock(soj_lock) do 
+            sojourns[i] = run_sim(TrackAllJobs, scenario, λ=λ, max_time=time)
+        end
     end
 
     return Λ, means, props, soj_Λ, sojourns
@@ -101,7 +125,8 @@ function get_plots(scenario::Int64, time::Float64; save::String="test")
 
     scens = [create_scen1, create_scen2, create_scen3, create_scen4, create_scen5]
     Λ, means, props, soj_Λ, sojourns = collect_data(scens[scenario], λ_vals, λ_soj_vals, time)
-    if scenario != 4
+
+    if true && scenario != 4
         Λ_props = Λ
         Λ_means = Λ
     else
@@ -116,9 +141,9 @@ function get_plots(scenario::Int64, time::Float64; save::String="test")
     savefig(means_plot, ".//$(save)plots//scen$(scenario)//scen$(scenario)_means_plot.png")
     
     props_plot = plot(Λ_props, props, legend=false,
-                        xlabel="Rate of arrival λ", 
-                        ylabel="Proportion in transit",
-                        title="The proportion of items in orbit\nas λ varies with a time horizon of T=10^$t")
+    xlabel="Rate of arrival λ", 
+    ylabel="Proportion in transit",
+    title="The proportion of items in orbit\nas λ varies with a time horizon of T=10^$t")
     
     savefig(props_plot, ".//$(save)plots//scen$(scenario)//scen$(scenario)_props_plot")
 
@@ -138,4 +163,17 @@ function create_all_plots(time::Float64; save::String="test")
     for i in 1:5
         get_plots(i, time, save=save)
     end
+end
+
+
+
+function test_timing(time::Float64; save::String="test")
+    for scenario in 1:5
+        t = floor(Int, log10(time))
+        λ_vals, λ_soj_vals = get_ranges(scenario)
+
+        scens = [create_scen1, create_scen2, create_scen3, create_scen4, create_scen5]
+        Λ, means, props, soj_Λ, sojourns = collect_data(scens[scenario], λ_vals, λ_soj_vals, time)
+    end
+
 end
